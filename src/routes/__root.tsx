@@ -78,12 +78,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Tacuara" },
-      { name: "description", content: "Comunicación, tecnología, datos y formación desde Misiones." },
+      {
+        name: "description",
+        content:
+          "Acompañamos la transformación digital de tu organización: comunicación, diseño, software, datos, procesos y formación desde Misiones.",
+      },
       { name: "author", content: "Tacuara" },
       { property: "og:title", content: "Tacuara" },
       { property: "og:description", content: "Un equipo para sostener tu proyecto." },
       { property: "og:type", content: "website" },
+      { property: "og:locale", content: "es_AR" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "theme-color", content: "#27500A" },
     ],
     links: [
       {
@@ -94,6 +100,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -104,7 +111,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="es">
       <head>
         <HeadContent />
       </head>
