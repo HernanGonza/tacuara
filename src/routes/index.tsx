@@ -407,14 +407,18 @@ function Index() {
       {/* DECLARACIÓN */}
       <section className="relative bg-warm">
         <Geo variant="light" />
-        <div className="frame relative mx-auto max-w-[96rem] px-4 py-20 sm:px-8 lg:py-32">
-        <div className="grid items-center gap-10 lg:grid-cols-[1.7fr_1fr]">
-          <ScrollWords
-            className="display text-[clamp(2.2rem,5.6vw,5.6rem)]"
-            text="Tacuara no cambia cómo trabajás. Construimos sobre lo que ya tenés, con un solo equipo detrás."
-          />
-          <Bauhaus kind="statement" palette={palettes.onPaper} className="mx-auto hidden w-full max-w-sm lg:block" />
-        </div>
+        <div data-pin>
+          <div className="sticky top-[72px] flex min-h-[calc(100svh-72px)] items-center">
+            <div className="frame relative mx-auto w-full max-w-[96rem] px-4 py-12 sm:px-8">
+              <div className="grid items-center gap-10 lg:grid-cols-[1.7fr_1fr]">
+                <ScrollWords
+                  className="display text-[clamp(2.2rem,5.6vw,5.6rem)]"
+                  text="Tacuara no cambia cómo trabajás. Construimos sobre lo que ya tenés, con un solo equipo detrás."
+                />
+                <Bauhaus kind="statement" palette={palettes.onPaper} className="mx-auto hidden w-full max-w-sm lg:block" />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
