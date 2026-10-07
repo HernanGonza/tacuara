@@ -81,7 +81,7 @@ export function MethodDeck({ steps }: { steps: DeckStep[] }) {
       />
       <span className="relative z-10 display text-5xl sm:text-7xl">0{index + 1}</span>
       <div className="relative z-10">
-        <h3 className="display text-4xl sm:text-7xl">{step.title}</h3>
+        <h3 className="display text-[clamp(1.25rem,calc((100vw-5rem)/10),2.25rem)] sm:text-7xl">{step.title}</h3>
         <p className="mono-label mt-4 max-w-md text-[0.78rem] opacity-90">{step.copy}</p>
       </div>
     </div>
