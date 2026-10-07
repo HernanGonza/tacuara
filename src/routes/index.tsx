@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState, type ComponentType, type CSSProperties, type FormEvent } from "react";
 
-import markUrl from "@/assets/tacuara-mark.png";
+import markUrl from "@/assets/tacuara-mark-bn.png";
 import photoUrl from "@/assets/bambu-bn.jpg";
 import { Bauhaus, palettes, ShapeStrip } from "@/components/bauhaus";
 import { Geo } from "@/components/geo";
@@ -359,7 +359,7 @@ function Index() {
               <li key={title}>
                 <button
                   type="button"
-                  className="svc-line display block w-full cursor-pointer text-left text-[clamp(1.9rem,4.6vw,4.4rem)]"
+                  className="svc-line display flex w-full cursor-pointer items-start gap-3 text-left text-[clamp(1.9rem,4.6vw,4.4rem)]"
                   aria-current={index === active}
                   onMouseEnter={() => {
                     setActive(index);
@@ -373,8 +373,8 @@ function Index() {
                   onBlur={() => setPaused(false)}
                   onClick={() => setActive(index)}
                 >
-                  <span className="mono-label mr-3 align-top text-[0.7rem] tracking-normal">0{index + 1}</span>
-                  {title}
+                  <span className="mono-label shrink-0 text-[0.7rem] tracking-normal">0{index + 1}</span>
+                  <span>{title}</span>
                 </button>
               </li>
             ))}

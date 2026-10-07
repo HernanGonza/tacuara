@@ -77,7 +77,7 @@ export function MethodDeck({ steps }: { steps: DeckStep[] }) {
       <Bauhaus
         kind={step.art as never}
         palette={palettes[step.palette] as Palette}
-        className="pointer-events-none absolute -bottom-6 -right-6 h-[88%] w-auto max-w-[62%] opacity-90 sm:right-4 sm:h-[104%] sm:max-w-[34%]"
+        className="pointer-events-none absolute -right-4 -top-4 h-[50%] w-auto max-w-[62%] opacity-90 sm:-bottom-6 sm:right-4 sm:top-auto sm:h-[104%] sm:max-w-[34%]"
       />
       <span className="relative z-10 display text-5xl sm:text-7xl">0{index + 1}</span>
       <div className="relative z-10">
