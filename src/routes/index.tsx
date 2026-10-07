@@ -14,7 +14,7 @@ import { useEffect, useRef, useState, type ComponentType, type CSSProperties, ty
 
 import markUrl from "@/assets/tacuara-mark.png";
 import photoUrl from "@/assets/bambu-bn.jpg";
-import { Bauhaus, palettes } from "@/components/bauhaus";
+import { Bauhaus, palettes, ShapeStrip } from "@/components/bauhaus";
 import { Geo } from "@/components/geo";
 import { BackToTop } from "@/components/back-to-top";
 import { ScrollReveal } from "@/components/scroll-reveal";
@@ -478,6 +478,10 @@ function Index() {
           </form>
         </div>
       </section>
+
+      <div className="border-t border-dashed border-ink/55">
+        <ShapeStrip />
+      </div>
 
       {/* FOOTER */}
       <footer className="relative overflow-hidden bg-[oklch(0.16_0.015_130)] text-white/70">

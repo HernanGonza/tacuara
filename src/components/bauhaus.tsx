@@ -91,3 +91,30 @@ export function Bauhaus({ kind, palette, className }: { kind: keyof typeof compo
     </svg>
   );
 }
+
+/** Tiles de la franja decorativa (antes del pie). */
+const tiles: { bg: string; shape: ReactNode }[] = [
+  { bg: ink, shape: <circle cx="50" cy="50" r="34" fill={lime} /> },
+  { bg: lime, shape: <path d="M10 90a40 40 0 0 1 80 0z M10 10h40v40z" fill={ink} /> },
+  { bg: mist, shape: <path d="M50 12l40 76H10z" fill={deep} /> },
+  { bg: deep, shape: <><rect x="14" y="14" width="72" height="72" fill="none" stroke={paper} strokeWidth="8" /><circle cx="50" cy="50" r="14" fill={lime} /></> },
+  { bg: paper, shape: <><path d="M0 100V0a100 100 0 0 1 100 100z" fill={deep} /><circle cx="68" cy="68" r="12" fill={paper} /></> },
+  { bg: ink, shape: <>{[0, 1, 2, 3].map((i) => <rect key={i} x={14 + i * 20} y="14" width="12" height="72" fill={i % 2 ? paper : lime} />)}</> },
+  { bg: lime, shape: <><circle cx="50" cy="50" r="38" fill={paper} /><path d="M12 50a38 38 0 0 1 76 0z" fill={ink} /></> },
+  { bg: deep, shape: <path d="M50 8l42 42-42 42-42-42z" fill={mist} /> },
+];
+
+/** Tiles de 32px repetidas (desfasadas) hasta cubrir el ancho; lo que sobra se recorta. */
+const strip = Array.from({ length: 64 }, (_, i) => tiles[(i * 3) % tiles.length]);
+
+export function ShapeStrip() {
+  return (
+    <div className="flex h-8 overflow-hidden" aria-hidden="true">
+      {strip.map((tile, i) => (
+        <svg key={i} viewBox="0 0 100 100" className="block size-8 shrink-0" style={{ background: tile.bg }}>
+          {tile.shape}
+        </svg>
+      ))}
+    </div>
+  );
+}
