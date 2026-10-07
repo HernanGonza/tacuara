@@ -12,6 +12,9 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
+// Dominio definitivo; las og:image necesitan URL absoluta para que WhatsApp/LinkedIn/etc. la tomen.
+const SITE_URL = "https://tacuara.com.ar";
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -81,15 +84,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Acompañamos la transformación digital de tu organización: comunicación, diseño, software, datos, procesos y formación desde Misiones.",
+          "Acompañamos la transformación digital de tu organización: diseño, software, datos, procesos y formación desde Misiones.",
       },
       { name: "author", content: "Tacuara" },
       { property: "og:title", content: "Tacuara" },
       { property: "og:description", content: "Un equipo para sostener tu proyecto." },
       { property: "og:type", content: "website" },
       { property: "og:locale", content: "es_AR" },
+      { property: "og:site_name", content: "Tacuara" },
+      { property: "og:url", content: SITE_URL },
+      { property: "og:image", content: `${SITE_URL}/og-image.png` },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:alt", content: "Tacuara: un solo equipo para sostener tu proyecto" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "theme-color", content: "#27500A" },
+      { name: "twitter:image", content: `${SITE_URL}/og-image.png` },
+      { name: "theme-color", content: "#ffffff" },
     ],
     links: [
       {
@@ -98,7 +108,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
