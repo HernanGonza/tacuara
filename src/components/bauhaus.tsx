@@ -105,7 +105,7 @@ const tiles: { bg: string; shape: ReactNode }[] = [
 ];
 
 /** Tiles de 32px repetidas (desfasadas) hasta cubrir el ancho; lo que sobra se recorta. */
-const strip = Array.from({ length: 64 }, (_, i) => tiles[(i * 3) % tiles.length]);
+const strip = Array.from({ length: 64 }, (_, i) => tiles[(i * 3) % tiles.length]!);
 
 export function ShapeStrip() {
   return (

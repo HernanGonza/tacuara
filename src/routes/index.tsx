@@ -20,6 +20,7 @@ import { BackToTop } from "@/components/back-to-top";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { MethodDeck } from "@/components/method-deck";
 import { ServiceArt } from "@/components/service-art";
+import { sendContact } from "@/lib/contact";
 import { ScrollWords } from "@/components/scroll-words";
 
 /** X (Twitter) glyph — lucide only ships the legacy bird. */
@@ -201,13 +202,27 @@ function Index() {
     };
   }, []);
 
-  function submitContact(event: FormEvent<HTMLFormElement>) {
+  const [contactStatus, setContactStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  async function submitContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const name = String(data.get("nombre") ?? "");
-    const email = String(data.get("email") ?? "");
-    const message = String(data.get("mensaje") ?? "");
-    window.location.href = `mailto:hola@tacuara.com.ar?subject=${encodeURIComponent(`Consulta de ${name}`)}&body=${encodeURIComponent(`${message}\n\nContacto: ${email}`)}`;
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    setContactStatus("sending");
+    try {
+      await sendContact({
+        data: {
+          nombre: String(data.get("nombre") ?? ""),
+          email: String(data.get("email") ?? ""),
+          mensaje: String(data.get("mensaje") ?? ""),
+          web: String(data.get("web") ?? ""),
+        },
+      });
+      form.reset();
+      setContactStatus("sent");
+    } catch {
+      setContactStatus("error");
+    }
   }
 
   const current = services[active] ?? services[0]!;
@@ -476,9 +491,14 @@ function Index() {
                 className="resize-none border border-dashed border-white/40 bg-transparent px-4 py-3.5 font-sans text-base normal-case tracking-normal text-white outline-none transition-colors placeholder:text-white/35 focus:border-accent"
               />
             </label>
-            <button type="submit" className="btn-solid h-14 w-full text-base sm:ml-auto sm:w-fit">
-              Enviar consulta <ArrowRight size={18} />
+            <input name="web" type="text" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 opacity-0" />
+            <button type="submit" disabled={contactStatus === "sending"} className="btn-solid h-14 w-full text-base disabled:opacity-60 sm:ml-auto sm:w-fit">
+              {contactStatus === "sending" ? "Enviando…" : "Enviar consulta"} <ArrowRight size={18} />
             </button>
+            <p role="status" aria-live="polite" className="mono-label min-h-[1.25rem] text-white/80 sm:text-right">
+              {contactStatus === "sent" && "¡Listo! Recibimos tu consulta y te respondemos pronto."}
+              {contactStatus === "error" && "No pudimos enviarla. Probá de nuevo o escribinos a hola@tacuara.com.ar."}
+            </p>
           </form>
         </div>
       </section>
