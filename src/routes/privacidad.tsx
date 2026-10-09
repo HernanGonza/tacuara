@@ -6,7 +6,9 @@ export const Route = createFileRoute("/privacidad")({
     meta: [
       { title: "Política de privacidad | Tacuara" },
       { name: "description", content: "Cómo Tacuara trata los datos personales que recibe a través del sitio y del correo." },
+      { property: "og:url", content: "https://www.tacuara.com.ar/privacidad" },
     ],
+    links: [{ rel: "canonical", href: "https://www.tacuara.com.ar/privacidad" }],
   }),
   component: Privacidad,
 });

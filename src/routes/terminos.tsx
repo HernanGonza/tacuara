@@ -6,7 +6,9 @@ export const Route = createFileRoute("/terminos")({
     meta: [
       { title: "Términos y condiciones | Tacuara" },
       { name: "description", content: "Condiciones de uso del sitio y de la comunicación con Tacuara." },
+      { property: "og:url", content: "https://www.tacuara.com.ar/terminos" },
     ],
+    links: [{ rel: "canonical", href: "https://www.tacuara.com.ar/terminos" }],
   }),
   component: Terminos,
 });
