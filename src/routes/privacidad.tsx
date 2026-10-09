@@ -34,7 +34,11 @@ function Privacidad() {
           ellos mismos publican (nombre del negocio, rubro, ciudad, email de contacto).
         </li>
       </ul>
-      <p>No usamos cookies de seguimiento ni herramientas de publicidad en este sitio.</p>
+      <p>
+        No usamos cookies de seguimiento ni herramientas de publicidad en este sitio. Para conocer cuántas personas lo visitan usamos Vercel Web
+        Analytics, que mide visitas de forma agregada, sin cookies y sin identificar a cada persona. Solo se activa si lo aceptás en el aviso del sitio, y
+        podés cambiar tu elección cuando quieras desde el enlace "Cookies" del pie de página. Tu elección se guarda únicamente en tu navegador.
+      </p>
 
       <h2>Para qué los usamos</h2>
       <ul>
@@ -74,7 +78,7 @@ function Privacidad() {
         <li>Resend (envío de los avisos del formulario de contacto del sitio).</li>
         <li>ImprovMX (reenvío de correo del dominio).</li>
         <li>Google (Gmail, almacenamiento del correo).</li>
-        <li>Vercel (alojamiento del sitio).</li>
+        <li>Vercel (alojamiento del sitio y estadísticas de visitas).</li>
       </ul>
       <p>Algunos de estos proveedores pueden procesar datos fuera de Argentina, con sus propias medidas de seguridad.</p>
 

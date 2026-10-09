@@ -22,6 +22,7 @@ import { MethodDeck } from "@/components/method-deck";
 import { ServiceArt } from "@/components/service-art";
 import { sendContact } from "@/lib/contact";
 import { ScrollWords } from "@/components/scroll-words";
+import { openCookiePreferences } from "@/components/cookie-consent";
 
 /** X (Twitter) glyph — lucide only ships the legacy bird. */
 function XIcon({ size = 18 }: { size?: number }) {
@@ -542,6 +543,9 @@ function Index() {
             <a href="/terminos" className="underline-offset-4 hover:text-accent hover:underline">
               Términos
             </a>
+            <button type="button" onClick={openCookiePreferences} className="underline-offset-4 hover:text-accent hover:underline">
+              Cookies
+            </button>
             <span>Hecho en Misiones 🧉</span>
           </p>
         </div>
