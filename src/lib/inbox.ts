@@ -7,7 +7,7 @@ import { CONTACT_EMAIL, fill, renderFooter } from "./email-template";
  * Bandeja de entrada y envío sobre la API de Gmail: leer, marcar leído, archivar, eliminar y responder/enviar como
  * hola@tacuara.com.ar (alias "Enviar como"; todo queda en Enviados). Los mails a hola@ llegan a consultoratacuara@gmail.com vía ImprovMX.
  * Variables de entorno (solo servidor): MAILER_PASSWORD, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN
- * y, opcional, INBOX_QUERY (búsqueda de Gmail; por defecto los mails dirigidos a hola@tacuara.com.ar) y MAILER_FROM.
+ * y, opcional, INBOX_QUERY (búsqueda de Gmail; por defecto los mails dirigidos a hola@tacuara.com.ar).
  * El refresh token se obtiene una vez con: node scripts/gmail-token.mjs
  */
 
@@ -108,9 +108,24 @@ function buildRaw(m: SentCopy): string {
   return Buffer.from(raw, "utf8").toString("base64url");
 }
 
-/** Envía el mail por Gmail (como el alias "Enviar como" hola@tacuara.com.ar). Gmail ya lo deja en Enviados. */
-export async function sendViaGmail(m: SentCopy): Promise<void> {
-  await gmail("/messages/send", { raw: buildRaw(m), ...(m.threadId ? { threadId: m.threadId } : {}) });
+const FROM = `Tacuara <${CONTACT_EMAIL}>`;
+let aliasOk = false;
+
+/** Falla si hola@tacuara.com.ar no es un alias "Enviar como" verificado: así Gmail nunca cambia el remitente sin avisar. */
+async function ensureAlias(): Promise<void> {
+  if (aliasOk) return;
+  const { sendAs = [] } = await gmail<{ sendAs?: { sendAsEmail: string; verificationStatus?: string }[] }>("/settings/sendAs");
+  const alias = sendAs.find((a) => a.sendAsEmail.toLowerCase() === CONTACT_EMAIL);
+  if (!alias || (alias.verificationStatus && alias.verificationStatus !== "accepted")) {
+    throw new Error(`Gmail no tiene ${CONTACT_EMAIL} como alias "Enviar como" verificado, así que no se envió (saldría con otra dirección).`);
+  }
+  aliasOk = true;
+}
+
+/** Envía el mail por Gmail siempre como hola@tacuara.com.ar (alias "Enviar como"). Gmail ya lo deja en Enviados. */
+export async function sendViaGmail(m: Omit<SentCopy, "from">): Promise<void> {
+  await ensureAlias();
+  await gmail("/messages/send", { raw: buildRaw({ ...m, from: FROM }), ...(m.threadId ? { threadId: m.threadId } : {}) });
 }
 
 
@@ -251,10 +266,8 @@ export const replyMessage = createServerFn({ method: "POST" })
     }</div></body></html>`;
     const text = `${data.body}\n\n--\n${fill("{{remitente_nombre}}\n{{remitente_rol}} · Tacuara", vars)}\n${CONTACT_EMAIL}\nwww.tacuara.com.ar${original ? `\n\n> ${original.replace(/\n/g, "\n> ")}` : ""}\n`;
 
-    const fromAddr = process.env["MAILER_FROM"] ?? "Tacuara <hola@tacuara.com.ar>";
     const finalSubject = /^re:/i.test(subject) ? subject : `Re: ${subject}`;
-    const copy: SentCopy = {
-      from: fromAddr,
+    const copy: Omit<SentCopy, "from"> = {
       to: to.data,
       subject: finalSubject,
       html,

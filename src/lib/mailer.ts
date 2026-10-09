@@ -35,19 +35,17 @@ function passwordOk(input: string): boolean {
  * Mandador interno (ruta oculta /enviar). El servidor arma el HTML con la plantilla fija
  * (src/lib/email-template.ts): quien envía solo escribe texto. Sale por Gmail con el alias "Enviar como"
  * hola@tacuara.com.ar (queda en Enviados); las respuestas llegan por ImprovMX a Gmail. Cada destinatario recibe su propio mail.
- * Variables de entorno (solo servidor): MAILER_PASSWORD, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN; MAILER_FROM (opcional).
+ * Variables de entorno (solo servidor): MAILER_PASSWORD, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN.
  */
 export const sendMail = createServerFn({ method: "POST" })
   .inputValidator(mailSchema)
   .handler(async ({ data }) => {
     if (!passwordOk(data.password)) throw new Error("Contraseña incorrecta.");
 
-    const from = process.env["MAILER_FROM"] ?? "Tacuara <hola@tacuara.com.ar>";
     const emails = data.recipients.map(({ email, ...vars }) => {
       const v = { ...vars, remitente_nombre: data.remitente_nombre, remitente_rol: data.remitente_rol };
       const { html, text } = renderEmail({ body: data.body, preheader: data.preheader, vars: v });
       return {
-        from,
         to: email,
         subject: fill(data.subject, v).replace(/[\r\n]+/g, " "),
         html,
