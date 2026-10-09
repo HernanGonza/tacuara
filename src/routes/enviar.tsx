@@ -115,10 +115,14 @@ function Mailer() {
           remitente_rol: rol || undefined,
         },
       });
+      if (res.failed.length) {
+        setStatus({ kind: "error", msg: `No se pudo enviar a: ${res.failed.join(", ")}.${res.sent ? ` Se enviaron ${res.sent}.` : ""}` });
+        return;
+      }
       setRaw("");
       setSubject(DEFAULT_SUBJECTS[0]!);
       setBody(DEFAULT_BODY);
-      setStatus({ kind: "ok", msg: `Enviado a ${res.sent} destinatario(s). El formulario quedó limpio.` });
+      setStatus({ kind: "ok", msg: `Enviado a ${res.sent} destinatario(s). El formulario quedó limpio.${res.savedCopies < res.sent ? " Ojo: no se pudo guardar la copia en Enviados de Gmail." : ""}` });
     } catch (err) {
       setStatus({ kind: "error", msg: err instanceof Error ? err.message : "Error al enviar." });
     }

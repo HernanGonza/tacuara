@@ -1,9 +1,20 @@
 import { Archive, RefreshCw, Reply, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { listInbox, readMessage, replyMessage, updateMessage } from "@/lib/inbox";
+import { listInbox, readMessage, readResend, replyMessage, updateMessage } from "@/lib/inbox";
 
 type Item = Awaited<ReturnType<typeof listInbox>>["messages"][number];
-type Full = Awaited<ReturnType<typeof readMessage>>;
+type Full = Awaited<ReturnType<typeof readMessage>> & { status?: string | undefined };
+
+const STATUS: Record<string, string> = {
+  delivered: "Entregado",
+  bounced: "Rebotó",
+  complained: "Marcado como spam",
+  sent: "Enviado",
+  delivery_delayed: "Demorado",
+  opened: "Abierto",
+  clicked: "Con clic",
+  failed: "Falló",
+};
 
 const fmt = (ms: number) =>
   new Date(ms).toLocaleString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -22,13 +33,14 @@ export function Inbox({ password, nombre, rol }: { password: string; nombre: str
   const [replying, setReplying] = useState(false);
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
+  const [box, setBox] = useState<"recibidos" | "enviados">("recibidos");
 
   const load = useCallback(
     async (pageToken?: string) => {
       setLoading(true);
       setError("");
       try {
-        const res = await listInbox({ data: { password, ...(pageToken ? { pageToken } : {}) } });
+        const res = await listInbox({ data: { password, box, ...(pageToken ? { pageToken } : {}) } });
         setItems((prev) => (pageToken ? [...prev, ...res.messages] : res.messages));
         setNext(res.nextPageToken);
       } catch (e) {
@@ -37,7 +49,7 @@ export function Inbox({ password, nombre, rol }: { password: string; nombre: str
         setLoading(false);
       }
     },
-    [password],
+    [password, box],
   );
 
   useEffect(() => {
@@ -45,14 +57,15 @@ export function Inbox({ password, nombre, rol }: { password: string; nombre: str
   }, [load]);
 
   async function show(id: string) {
+    const item = items.find((m) => m.id === id);
     setSelected(id);
     setOpen(null);
     setReplying(false);
     setReply("");
     setNotice("");
     try {
-      setOpen(await readMessage({ data: { password, id } }));
-      if (items.find((m) => m.id === id)?.unread) {
+      setOpen(item?.source === "resend" ? await readResend({ data: { password, id } }) : await readMessage({ data: { password, id } }));
+      if (item?.unread) {
         setItems((prev) => prev.map((m) => (m.id === id ? { ...m, unread: false } : m)));
         void updateMessage({ data: { password, id, action: "read" } });
       }
@@ -87,7 +100,7 @@ export function Inbox({ password, nombre, rol }: { password: string; nombre: str
       });
       setReplying(false);
       setReply("");
-      setNotice(`Respuesta enviada a ${res.to}.`);
+      setNotice(`Respuesta enviada a ${res.to}.${res.saved ? "" : " Ojo: no se pudo guardar la copia en Enviados de Gmail."}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo enviar la respuesta.");
     } finally {
@@ -104,7 +117,24 @@ export function Inbox({ password, nombre, rol }: { password: string; nombre: str
     <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,24rem)_1fr]">
       <div className="flex min-h-0 flex-col border border-dashed border-ink/55 bg-white">
         <div className="flex items-center justify-between border-b border-dashed border-ink/55 px-3 py-1.5">
-          <span className="mono-label">Recibidos · hola@tacuara.com.ar</span>
+          <div className="flex gap-1 text-xs">
+            {(["recibidos", "enviados"] as const).map((b) => (
+              <button
+                key={b}
+                type="button"
+                onClick={() => {
+                  setBox(b);
+                  setItems([]);
+                  setOpen(null);
+                  setSelected(null);
+                  setNotice("");
+                }}
+                className={`rounded-full border border-ink/60 px-2.5 py-0.5 capitalize ${box === b ? "bg-ink text-white" : "hover:bg-warm"}`}
+              >
+                {b}
+              </button>
+            ))}
+          </div>
           <button type="button" aria-label="Actualizar" className="text-ink/70 hover:text-ink" onClick={() => void load()}>
             <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
           </button>
@@ -120,11 +150,12 @@ export function Inbox({ password, nombre, rol }: { password: string; nombre: str
                 <span className="flex items-baseline justify-between gap-2">
                   <span className={`truncate text-sm ${m.unread ? "font-bold" : ""}`}>
                     {m.unread && <span className="mr-1.5 inline-block size-2 rounded-full bg-impact" />}
-                    {who(m.from)}
+                    {box === "enviados" ? `Para: ${who(m.to)}` : who(m.from)}
                   </span>
                   <span className="mono-label shrink-0 text-[0.65rem] text-ink/60">{fmt(m.date)}</span>
                 </span>
                 <span className={`block truncate text-sm ${m.unread ? "font-semibold" : ""}`}>{m.subject}</span>
+                {m.status && <span className="mono-label block text-[0.65rem] text-impact">{STATUS[m.status] ?? m.status}</span>}
                 <span className="block truncate text-xs text-ink/60">{m.snippet}</span>
               </button>
             </li>
@@ -150,8 +181,9 @@ export function Inbox({ password, nombre, rol }: { password: string; nombre: str
               <p className="text-xs text-ink/70">
                 De: {open.from} · {fmt(open.date)}
               </p>
+              {box === "enviados" && <p className="text-xs text-ink/70">Para: {open.to}{open.status ? ` · ${STATUS[open.status] ?? open.status}` : ""}</p>}
               {open.files.length > 0 && <p className="text-xs text-ink/70">Adjuntos: {open.files.join(", ")} (abrilos en Gmail)</p>}
-              <div className="flex gap-2 pt-1">
+              {box === "recibidos" && <div className="flex gap-2 pt-1">
                 <button type="button" className="btn-solid h-8 gap-1.5 px-3 text-xs" onClick={() => setReplying((v) => !v)}>
                   <Reply size={14} /> Responder
                 </button>
@@ -161,10 +193,10 @@ export function Inbox({ password, nombre, rol }: { password: string; nombre: str
                 <button type="button" className="btn-dashed h-8 gap-1.5 px-3 text-xs" disabled={busy} onClick={() => void act("trash")}>
                   <Trash2 size={14} /> Eliminar
                 </button>
-              </div>
+              </div>}
             </div>
             <iframe title="Mensaje" sandbox="" srcDoc={doc} className="min-h-0 w-full flex-1 bg-white" />
-            {replying && (
+            {replying && box === "recibidos" && (
               <div className="space-y-2 border-t border-dashed border-ink/55 p-3">
                 <p className="mono-label">Respuesta a {open.replyTo} · sale como hola@tacuara.com.ar</p>
                 <textarea
