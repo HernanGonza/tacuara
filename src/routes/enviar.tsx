@@ -9,6 +9,7 @@ import {
   fill,
   renderEmail,
 } from "@/lib/email-template";
+import { Inbox } from "@/components/inbox";
 import { checkMailerPassword, sendMail } from "@/lib/mailer";
 
 export const Route = createFileRoute("/enviar")({
@@ -58,6 +59,7 @@ function Mailer() {
   const [body, setBody] = useState(DEFAULT_BODY);
   const [nombre, setNombre] = useState("");
   const [rol, setRol] = useState("");
+  const [tab, setTab] = useState<"enviar" | "bandeja">("enviar");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [dark, setDark] = useState(false);
   const [status, setStatus] = useState<{ kind: "idle" | "busy" | "ok" | "error"; msg?: string }>({ kind: "idle" });
@@ -161,10 +163,22 @@ function Mailer() {
     <main className="flex h-screen flex-col overflow-hidden bg-background px-4 py-3 text-ink sm:px-6">
       <div className="mx-auto flex min-h-0 w-full max-w-[96rem] flex-1 flex-col">
         <div className="mb-2 flex items-baseline justify-between gap-4 border-b border-dashed border-ink/55 pb-2">
-          <h1 className="display text-2xl">Enviar presentación</h1>
+          <div className="flex items-baseline gap-5">
+            {(["enviar", "bandeja"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTab(t)}
+                className={`display text-2xl ${tab === t ? "" : "text-ink/35 hover:text-ink/70"}`}
+              >
+                {t === "enviar" ? "Enviar" : "Bandeja"}
+              </button>
+            ))}
+          </div>
           <p className="mono-label">Sale como hola@tacuara.com.ar</p>
         </div>
-        <div className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[minmax(0,26rem)_1fr] xl:grid-cols-[minmax(0,30rem)_1fr]">
+        {tab === "bandeja" && <Inbox password={password} nombre={nombre} rol={rol} />}
+        <div className={`${tab === "enviar" ? "grid" : "hidden"} min-h-0 flex-1 gap-5 lg:grid-cols-[minmax(0,26rem)_1fr] xl:grid-cols-[minmax(0,30rem)_1fr]`}>
           <div className="flex min-h-0 flex-col gap-2.5 overflow-y-auto pr-1">
             <label className="block space-y-1">
               <span className="mono-label">1 · Destinatarios ({list.length})</span>

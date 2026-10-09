@@ -533,7 +533,15 @@ function Index() {
         </div>
         <div className="relative z-10 mx-auto flex max-w-[96rem] flex-col gap-2 px-4 pb-6 text-xs sm:flex-row sm:justify-between sm:px-8 mono-label">
           <p>© {new Date().getFullYear()} Tacuara. Todos los derechos reservados.</p>
-          <p>Hecho en Misiones 🧉</p>
+          <p className="flex flex-wrap gap-x-5 gap-y-1">
+            <a href="/privacidad" className="underline-offset-4 hover:text-accent hover:underline">
+              Privacidad
+            </a>
+            <a href="/terminos" className="underline-offset-4 hover:text-accent hover:underline">
+              Términos
+            </a>
+            <span>Hecho en Misiones 🧉</span>
+          </p>
         </div>
         <p className="display pointer-events-none -mb-[3vw] select-none text-center text-[24vw] leading-[0.8] text-white/[0.06]" aria-hidden="true">
           tacuara
