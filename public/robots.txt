@@ -13,3 +13,5 @@ Allow: /
 User-agent: *
 Allow: /
 Disallow: /enviar
+
+Sitemap: https://www.tacuara.com.ar/sitemap.xml
