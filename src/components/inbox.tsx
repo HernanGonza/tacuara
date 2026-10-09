@@ -103,8 +103,8 @@ export function Inbox({ password, nombre, rol }: { password: string; nombre: str
     : "";
 
   return (
-    <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,24rem)_1fr]">
-      <div className="flex min-h-0 flex-col border border-dashed border-ink/55 bg-white">
+    <div className="grid flex-1 grid-cols-[minmax(0,1fr)] gap-4 lg:min-h-0 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
+      <div className={`${selected ? "hidden lg:flex" : "flex"} h-[78svh] flex-col border border-dashed border-ink/55 bg-white lg:h-auto lg:min-h-0`}>
         <div className="flex items-center justify-between border-b border-dashed border-ink/55 px-3 py-1.5">
           <div className="flex gap-1 text-xs">
             {(["recibidos", "enviados"] as const).map((b) => (
@@ -161,17 +161,27 @@ export function Inbox({ password, nombre, rol }: { password: string; nombre: str
         {notice && <p className="border-t border-dashed border-ink/55 p-3 text-xs text-impact">{notice}</p>}
       </div>
 
-      <div className="flex min-h-0 flex-col border border-dashed border-ink/55 bg-white">
+      <div className={`${selected ? "flex" : "hidden lg:flex"} min-h-[80svh] flex-col border border-dashed border-ink/55 bg-white lg:min-h-0`}>
         {open ? (
           <>
             <div className="space-y-0.5 border-b border-dashed border-ink/55 px-4 py-2.5">
+              <button
+                type="button"
+                className="mb-1 text-xs underline lg:hidden"
+                onClick={() => {
+                  setSelected(null);
+                  setOpen(null);
+                }}
+              >
+                ← Volver a la lista
+              </button>
               <h2 className="text-base font-bold leading-tight">{open.subject}</h2>
               <p className="text-xs text-ink/70">
                 De: {open.from} · {fmt(open.date)}
               </p>
               {box === "enviados" && <p className="text-xs text-ink/70">Para: {open.to}</p>}
               {open.files.length > 0 && <p className="text-xs text-ink/70">Adjuntos: {open.files.join(", ")} (abrilos en Gmail)</p>}
-              {box === "recibidos" && <div className="flex gap-2 pt-1">
+              {box === "recibidos" && <div className="flex flex-wrap gap-2 pt-1">
                 <button type="button" className="btn-solid h-8 gap-1.5 px-3 text-xs" onClick={() => setReplying((v) => !v)}>
                   <Reply size={14} /> Responder
                 </button>
@@ -183,7 +193,7 @@ export function Inbox({ password, nombre, rol }: { password: string; nombre: str
                 </button>
               </div>}
             </div>
-            <iframe title="Mensaje" sandbox="" srcDoc={doc} className="min-h-0 w-full flex-1 bg-white" />
+            <iframe title="Mensaje" sandbox="" srcDoc={doc} className="min-h-[60svh] w-full flex-1 bg-white lg:min-h-0" />
             {replying && box === "recibidos" && (
               <div className="space-y-2 border-t border-dashed border-ink/55 p-3">
                 <p className="mono-label">Respuesta a {open.replyTo} · sale como hola@tacuara.com.ar</p>
@@ -204,7 +214,14 @@ export function Inbox({ password, nombre, rol }: { password: string; nombre: str
             )}
           </>
         ) : (
-          <p className="grid flex-1 place-items-center p-6 text-sm text-ink/60">{selected ? "Abriendo…" : "Elegí un mensaje."}</p>
+          <div className="grid flex-1 place-items-center gap-3 p-6 text-center text-sm text-ink/60">
+            <p>{selected ? "Abriendo…" : "Elegí un mensaje."}</p>
+            {selected && (
+              <button type="button" className="text-xs underline lg:hidden" onClick={() => setSelected(null)}>
+                ← Volver a la lista
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

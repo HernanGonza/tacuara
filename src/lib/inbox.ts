@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { randomUUID, timingSafeEqual } from "node:crypto";
+import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { CONTACT_EMAIL, fill, renderFooter } from "./email-template";
 
@@ -79,13 +79,13 @@ export interface SentCopy {
 }
 
 function buildRaw(m: SentCopy): string {
-  const boundary = `tacuara-${randomUUID()}`;
+  const boundary = `tacuara-${crypto.randomUUID()}`;
   const raw = [
     `From: ${m.from}`,
     `To: ${m.to}`,
     `Subject: ${encodeHeader(m.subject)}`,
     `Date: ${new Date().toUTCString()}`,
-    `Message-ID: <${randomUUID()}@tacuara.com.ar>`,
+    `Message-ID: <${crypto.randomUUID()}@tacuara.com.ar>`,
     ...(m.inReplyTo ? [`In-Reply-To: ${m.inReplyTo}`] : []),
     ...(m.references ? [`References: ${m.references}`] : []),
     ...Object.entries(m.headers ?? {}).map(([k, v]) => `${k}: ${v}`),

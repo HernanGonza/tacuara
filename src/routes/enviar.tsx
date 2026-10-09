@@ -164,8 +164,8 @@ function Mailer() {
   const ready = list.length > 0 && subject.trim() && body.trim() && nombre.trim() && invalid.length === 0 && status.kind !== "busy";
 
   return (
-    <main className="flex h-screen flex-col overflow-hidden bg-background px-4 py-3 text-ink sm:px-6">
-      <div className="mx-auto flex min-h-0 w-full max-w-[96rem] flex-1 flex-col">
+    <main className="flex min-h-screen flex-col overflow-x-hidden bg-background px-4 py-3 text-ink sm:px-6 lg:h-screen lg:overflow-hidden">
+      <div className="mx-auto flex w-full max-w-[96rem] flex-1 flex-col lg:min-h-0">
         <div className="mb-2 flex items-baseline justify-between gap-4 border-b border-dashed border-ink/55 pb-2">
           <div className="flex items-baseline gap-5">
             {(["enviar", "bandeja"] as const).map((t) => (
@@ -179,11 +179,11 @@ function Mailer() {
               </button>
             ))}
           </div>
-          <p className="mono-label">Sale como hola@tacuara.com.ar</p>
+          <p className="mono-label hidden sm:block">Sale como hola@tacuara.com.ar</p>
         </div>
         {tab === "bandeja" && <Inbox password={password} nombre={nombre} rol={rol} />}
-        <div className={`${tab === "enviar" ? "grid" : "hidden"} min-h-0 flex-1 gap-5 lg:grid-cols-[minmax(0,26rem)_1fr] xl:grid-cols-[minmax(0,30rem)_1fr]`}>
-          <div className="flex min-h-0 flex-col gap-2.5 overflow-y-auto pr-1">
+        <div className={`${tab === "enviar" ? "grid" : "hidden"} flex-1 grid-cols-[minmax(0,1fr)] gap-5 lg:min-h-0 lg:grid-cols-[minmax(0,26rem)_1fr] xl:grid-cols-[minmax(0,30rem)_1fr]`}>
+          <div className="flex min-w-0 flex-col gap-2.5 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
             <label className="block space-y-1">
               <span className="mono-label">1 · Destinatarios ({list.length})</span>
               <textarea
@@ -211,9 +211,9 @@ function Mailer() {
               <input className={field} value={subject} onChange={(e) => setSubject(e.target.value)} />
             </label>
 
-            <label className="flex min-h-0 flex-1 flex-col space-y-1">
+            <label className="flex flex-col space-y-1 lg:min-h-0 lg:flex-1">
               <span className="mono-label">3 · Mensaje ({words} palabras)</span>
-              <textarea className={`${field} min-h-[8rem] flex-1`} value={body} onChange={(e) => setBody(e.target.value)} />
+              <textarea className={`${field} min-h-[14rem] lg:min-h-[8rem] lg:flex-1`} value={body} onChange={(e) => setBody(e.target.value)} />
               <p className={hint}>
                 Línea en blanco = párrafo nuevo. «- » al inicio = viñeta. {"{{nombre_negocio}}"}, {"{{rubro}}"} y {"{{ciudad}}"} se completan solos.{" "}
                 <button type="button" className="underline" onClick={() => setBody(DEFAULT_BODY)}>
@@ -243,7 +243,7 @@ function Mailer() {
             </div>
           </div>
 
-          <div className="flex min-h-0 flex-col gap-1">
+          <div className="flex min-w-0 flex-col gap-1 lg:min-h-0">
             <div className="flex items-center justify-between gap-3">
               <span className="mono-label truncate">Asunto: {fill(subject, vars)}</span>
               <div className="flex shrink-0 gap-1 text-xs">
@@ -259,7 +259,7 @@ function Mailer() {
                 ))}
               </div>
             </div>
-            <iframe title="Vista previa" sandbox="" srcDoc={preview} className="min-h-0 w-full flex-1 border border-dashed border-ink/55 bg-white" />
+            <iframe title="Vista previa" sandbox="" srcDoc={preview} className="h-[34rem] w-full border border-dashed border-ink/55 bg-white lg:h-auto lg:min-h-0 lg:flex-1" />
           </div>
         </div>
       </div>
