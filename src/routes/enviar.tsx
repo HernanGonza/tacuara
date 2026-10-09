@@ -122,7 +122,7 @@ function Mailer() {
       setRaw("");
       setSubject(DEFAULT_SUBJECTS[0]!);
       setBody(DEFAULT_BODY);
-      setStatus({ kind: "ok", msg: `Enviado a ${res.sent} destinatario(s). El formulario quedó limpio.${res.savedCopies < res.sent ? " Ojo: no se pudo guardar la copia en Enviados de Gmail." : ""}` });
+      setStatus({ kind: "ok", msg: `Enviado a ${res.sent} destinatario(s). El formulario quedó limpio.` });
     } catch (err) {
       setStatus({ kind: "error", msg: err instanceof Error ? err.message : "Error al enviar." });
     }

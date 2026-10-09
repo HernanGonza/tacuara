@@ -4,9 +4,10 @@ import { z } from "zod";
 import { CONTACT_EMAIL, fill, renderFooter } from "./email-template";
 
 /**
- * Bandeja de entrada sobre la API de Gmail (leer, marcar leído, archivar, eliminar; las respuestas salen por Resend) (los mails a hola@tacuara.com.ar llegan a consultoratacuara@gmail.com vía ImprovMX).
+ * Bandeja de entrada y envío sobre la API de Gmail: leer, marcar leído, archivar, eliminar y responder/enviar como
+ * hola@tacuara.com.ar (alias "Enviar como"; todo queda en Enviados). Los mails a hola@ llegan a consultoratacuara@gmail.com vía ImprovMX.
  * Variables de entorno (solo servidor): MAILER_PASSWORD, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN
- * RESEND_API_KEY (para responder) y, opcional, INBOX_QUERY, MAILER_FROM (búsqueda de Gmail; por defecto los mails dirigidos a hola@tacuara.com.ar).
+ * y, opcional, INBOX_QUERY (búsqueda de Gmail; por defecto los mails dirigidos a hola@tacuara.com.ar) y MAILER_FROM.
  * El refresh token se obtiene una vez con: node scripts/gmail-token.mjs
  */
 
@@ -107,21 +108,11 @@ function buildRaw(m: SentCopy): string {
   return Buffer.from(raw, "utf8").toString("base64url");
 }
 
-/**
- * Guarda en la carpeta Enviados de Gmail una copia de un mail que salió por Resend (Gmail no lo ve de otro modo).
- * Usa messages.insert: no envía nada, solo agrega el mensaje con la etiqueta SENT.
- */
-export async function saveToSent(m: SentCopy): Promise<void> {
-  await gmail("/messages", { raw: buildRaw(m), labelIds: ["SENT"], ...(m.threadId ? { threadId: m.threadId } : {}) });
-}
-
 /** Envía el mail por Gmail (como el alias "Enviar como" hola@tacuara.com.ar). Gmail ya lo deja en Enviados. */
 export async function sendViaGmail(m: SentCopy): Promise<void> {
   await gmail("/messages/send", { raw: buildRaw(m), ...(m.threadId ? { threadId: m.threadId } : {}) });
 }
 
-/** MAIL_TRANSPORT=gmail envía por Gmail; por defecto se usa Resend. */
-export const useGmailTransport = () => process.env["MAIL_TRANSPORT"] === "gmail";
 
 /** Decodifica encabezados MIME tipo =?UTF-8?B?...?= por si Gmail los devuelve sin decodificar. */
 function decodeWords(s: string): string {
@@ -160,12 +151,6 @@ const addressOf = (v: string) => /<([^>]+)>/.exec(v)?.[1]?.trim() ?? v.trim();
 
 const auth = z.object({ password: z.string().max(200) });
 
-/** Fecha de Resend ("2026-10-09 12:30:00.123+00") a ms. */
-const resendDate = (v: string) => {
-  const t = Date.parse(v.replace(" ", "T").replace(/([+-]\d\d)$/, "$1:00"));
-  return Number.isNaN(t) ? 0 : t;
-};
-
 const META = new URLSearchParams([
   ["format", "metadata"],
   ["metadataHeaders", "From"],
@@ -183,81 +168,24 @@ async function gmailItems(q: string, max: number, pageToken?: string) {
       const m = await gmail<Msg>(`/messages/${id}?${META}`);
       return {
         id,
-        source: "gmail" as "gmail" | "resend",
         from: header(m, "From"),
         to: header(m, "To"),
         subject: header(m, "Subject") || "(sin asunto)",
         snippet: m.snippet ?? "",
         date: Number(m.internalDate ?? 0),
         unread: Boolean(m.labelIds?.includes("UNREAD")),
-        status: undefined as string | undefined,
       };
     }),
   );
   return { messages, nextPageToken: list.nextPageToken ?? null };
 }
 
-/** Mails enviados por Resend (incluye los anteriores a pasar a Gmail). Necesita una API key con acceso completo. */
-async function resendSent() {
-  const apiKey = process.env["RESEND_API_KEY"];
-  if (!apiKey) return [];
-  const res = await fetch("https://api.resend.com/emails?limit=100", { headers: { Authorization: `Bearer ${apiKey}` } });
-  if (!res.ok) {
-    console.error("[inbox] Resend list", res.status, await res.text());
-    return [];
-  }
-  const json = (await res.json()) as { data?: { id: string; to: string[]; from: string; subject: string; created_at: string; last_event?: string }[] };
-  return (json.data ?? []).map((e) => ({
-    id: e.id,
-    source: "resend" as "gmail" | "resend",
-    from: e.from,
-    to: e.to.join(", "),
-    subject: e.subject || "(sin asunto)",
-    snippet: "",
-    date: resendDate(e.created_at),
-    unread: false,
-    status: e.last_event,
-  }));
-}
-
 export const listInbox = createServerFn({ method: "POST" })
   .inputValidator(auth.extend({ pageToken: z.string().max(500).optional(), box: z.enum(["recibidos", "enviados"]).default("recibidos") }))
   .handler(async ({ data }) => {
     if (!passwordOk(data.password)) throw new Error("Contraseña incorrecta.");
-    if (data.box === "enviados") {
-      const [gm, rs] = await Promise.all([gmailItems("in:sent", 50), resendSent()]);
-      // Los que ya tienen copia en Gmail no se repiten (mismo destinatario y asunto con minutos de diferencia).
-      const key = (m: { to: string; subject: string; date: number }) =>
-        `${m.to.toLowerCase().replace(/.*<|>.*/g, "")}|${m.subject.replace(/^re:\s*/i, "")}|${Math.round(m.date / 300_000)}`;
-      const seen = new Set(gm.messages.map(key));
-      const extra = rs.filter((m) => !seen.has(key(m)) && !seen.has(`${key(m).split("|").slice(0, 2).join("|")}|${Math.round(m.date / 300_000) + 1}`));
-      return { messages: [...gm.messages, ...extra].sort((a, b) => b.date - a.date), nextPageToken: null };
-    }
+    if (data.box === "enviados") return gmailItems("in:sent", PAGE_SIZE, data.pageToken);
     return gmailItems(process.env["INBOX_QUERY"] ?? "in:inbox to:hola@tacuara.com.ar", PAGE_SIZE, data.pageToken);
-  });
-
-/** Un mail enviado por Resend (con su HTML). */
-export const readResend = createServerFn({ method: "POST" })
-  .inputValidator(auth.extend({ id: z.string().regex(/^[\w-]+$/).max(64) }))
-  .handler(async ({ data }) => {
-    if (!passwordOk(data.password)) throw new Error("Contraseña incorrecta.");
-    const res = await fetch(`https://api.resend.com/emails/${data.id}`, {
-      headers: { Authorization: `Bearer ${process.env["RESEND_API_KEY"] ?? ""}` },
-    });
-    if (!res.ok) throw new Error(`Resend respondió ${res.status}.`);
-    const e = (await res.json()) as { id: string; to: string[]; from: string; subject: string; created_at: string; html?: string; text?: string; last_event?: string };
-    return {
-      id: e.id,
-      from: e.from,
-      to: e.to.join(", "),
-      replyTo: "",
-      subject: e.subject || "(sin asunto)",
-      date: resendDate(e.created_at),
-      html: e.html ?? "",
-      text: e.text ?? "",
-      files: [] as string[],
-      status: e.last_event,
-    };
   });
 
 export const readMessage = createServerFn({ method: "POST" })
@@ -294,7 +222,7 @@ export const updateMessage = createServerFn({ method: "POST" })
 
 const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-/** Responde por Resend como hola@tacuara.com.ar, dentro del mismo hilo. El destinatario sale del mensaje original, no del cliente. */
+/** Responde por Gmail como hola@tacuara.com.ar, dentro del mismo hilo. El destinatario sale del mensaje original, no del cliente. */
 export const replyMessage = createServerFn({ method: "POST" })
   .inputValidator(
     auth.extend({
@@ -306,9 +234,6 @@ export const replyMessage = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     if (!passwordOk(data.password)) throw new Error("Contraseña incorrecta.");
-    const apiKey = process.env["RESEND_API_KEY"];
-    if (!apiKey && !useGmailTransport()) throw new Error("Falta RESEND_API_KEY en el servidor.");
-
     const m = await gmail<Msg>(`/messages/${data.id}?format=full`);
     const to = z.string().email().safeParse(addressOf(header(m, "Reply-To") || header(m, "From")));
     if (!to.success) throw new Error("No se pudo determinar a quién responder.");
@@ -340,35 +265,6 @@ export const replyMessage = createServerFn({ method: "POST" })
       headers: { "Content-Language": "es" },
     };
 
-    if (useGmailTransport()) {
-      await sendViaGmail(copy);
-      return { ok: true as const, to: to.data, saved: true };
-    }
-
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey ?? ""}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: fromAddr,
-        to: [to.data],
-        reply_to: CONTACT_EMAIL,
-        subject: finalSubject,
-        html,
-        text,
-        headers: { "Content-Language": "es", ...(messageId ? { "In-Reply-To": messageId, References: refs } : {}) },
-      }),
-    });
-    if (!res.ok) {
-      const err = await res.text();
-      console.error("[inbox] Resend respondió", res.status, err);
-      throw new Error(`Resend rechazó la respuesta (${res.status}): ${err.slice(0, 300)}`);
-    }
-    const saved = await saveToSent(copy).then(
-      () => true,
-      (e) => {
-        console.error("[inbox] no se pudo guardar en Enviados", e);
-        return false;
-      },
-    );
-    return { ok: true as const, to: to.data, saved };
+    await sendViaGmail(copy);
+    return { ok: true as const, to: to.data };
   });

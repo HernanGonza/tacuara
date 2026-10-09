@@ -1,20 +1,9 @@
 import { Archive, RefreshCw, Reply, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { listInbox, readMessage, readResend, replyMessage, updateMessage } from "@/lib/inbox";
+import { listInbox, readMessage, replyMessage, updateMessage } from "@/lib/inbox";
 
 type Item = Awaited<ReturnType<typeof listInbox>>["messages"][number];
-type Full = Awaited<ReturnType<typeof readMessage>> & { status?: string | undefined };
-
-const STATUS: Record<string, string> = {
-  delivered: "Entregado",
-  bounced: "Rebotó",
-  complained: "Marcado como spam",
-  sent: "Enviado",
-  delivery_delayed: "Demorado",
-  opened: "Abierto",
-  clicked: "Con clic",
-  failed: "Falló",
-};
+type Full = Awaited<ReturnType<typeof readMessage>>;
 
 const fmt = (ms: number) =>
   new Date(ms).toLocaleString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -64,7 +53,7 @@ export function Inbox({ password, nombre, rol }: { password: string; nombre: str
     setReply("");
     setNotice("");
     try {
-      setOpen(item?.source === "resend" ? await readResend({ data: { password, id } }) : await readMessage({ data: { password, id } }));
+      setOpen(await readMessage({ data: { password, id } }));
       if (item?.unread) {
         setItems((prev) => prev.map((m) => (m.id === id ? { ...m, unread: false } : m)));
         void updateMessage({ data: { password, id, action: "read" } });
@@ -100,7 +89,7 @@ export function Inbox({ password, nombre, rol }: { password: string; nombre: str
       });
       setReplying(false);
       setReply("");
-      setNotice(`Respuesta enviada a ${res.to}.${res.saved ? "" : " Ojo: no se pudo guardar la copia en Enviados de Gmail."}`);
+      setNotice(`Respuesta enviada a ${res.to}.`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo enviar la respuesta.");
     } finally {
@@ -155,7 +144,6 @@ export function Inbox({ password, nombre, rol }: { password: string; nombre: str
                   <span className="mono-label shrink-0 text-[0.65rem] text-ink/60">{fmt(m.date)}</span>
                 </span>
                 <span className={`block truncate text-sm ${m.unread ? "font-semibold" : ""}`}>{m.subject}</span>
-                {m.status && <span className="mono-label block text-[0.65rem] text-impact">{STATUS[m.status] ?? m.status}</span>}
                 <span className="block truncate text-xs text-ink/60">{m.snippet}</span>
               </button>
             </li>
@@ -181,7 +169,7 @@ export function Inbox({ password, nombre, rol }: { password: string; nombre: str
               <p className="text-xs text-ink/70">
                 De: {open.from} · {fmt(open.date)}
               </p>
-              {box === "enviados" && <p className="text-xs text-ink/70">Para: {open.to}{open.status ? ` · ${STATUS[open.status] ?? open.status}` : ""}</p>}
+              {box === "enviados" && <p className="text-xs text-ink/70">Para: {open.to}</p>}
               {open.files.length > 0 && <p className="text-xs text-ink/70">Adjuntos: {open.files.join(", ")} (abrilos en Gmail)</p>}
               {box === "recibidos" && <div className="flex gap-2 pt-1">
                 <button type="button" className="btn-solid h-8 gap-1.5 px-3 text-xs" onClick={() => setReplying((v) => !v)}>

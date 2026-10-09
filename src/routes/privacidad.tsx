@@ -50,6 +50,10 @@ function Privacidad() {
       <ul>
         <li>Leemos los mensajes dirigidos a hola@tacuara.com.ar para mostrarlos al equipo.</li>
         <li>Marcamos mensajes como leídos, los archivamos o los enviamos a la papelera, a pedido del equipo.</li>
+        <li>
+          Enviamos mensajes y respuestas desde hola@tacuara.com.ar a través de Gmail, a pedido del equipo. Esos mensajes quedan guardados en la carpeta
+          Enviados de la cuenta de Gmail del equipo.
+        </li>
         <li>No almacenamos el contenido de esos mensajes en nuestros servidores: se consulta en el momento y no se guarda.</li>
         <li>No compartimos esos datos con terceros, no los usamos para publicidad ni para entrenar modelos de inteligencia artificial.</li>
         <li>Solo una persona autorizada del equipo puede acceder, con contraseña.</li>
@@ -65,7 +69,7 @@ function Privacidad() {
       <h2>Con quién compartimos datos</h2>
       <p>Para operar el servicio usamos proveedores que tratan datos en nuestro nombre:</p>
       <ul>
-        <li>Resend (envío de correo).</li>
+        <li>Resend (envío de los avisos del formulario de contacto del sitio).</li>
         <li>ImprovMX (reenvío de correo del dominio).</li>
         <li>Google (Gmail, almacenamiento del correo).</li>
         <li>Vercel (alojamiento del sitio).</li>

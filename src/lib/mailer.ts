@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { fill, renderEmail } from "./email-template";
-import { saveToSent, sendViaGmail, useGmailTransport } from "./inbox";
+import { sendViaGmail } from "./inbox";
 
 const MAX_RECIPIENTS = 50;
 
@@ -33,17 +33,14 @@ function passwordOk(input: string): boolean {
 
 /**
  * Mandador interno (ruta oculta /enviar). El servidor arma el HTML con la plantilla fija
- * (src/lib/email-template.ts): quien envía solo escribe texto. Sale como hola@tacuara.com.ar por Resend;
- * las respuestas llegan por ImprovMX a Gmail. Cada destinatario recibe su propio mail.
- * Variables de entorno (solo servidor): RESEND_API_KEY, MAILER_PASSWORD (obligatorias), MAILER_FROM (opcional).
+ * (src/lib/email-template.ts): quien envía solo escribe texto. Sale por Gmail con el alias "Enviar como"
+ * hola@tacuara.com.ar (queda en Enviados); las respuestas llegan por ImprovMX a Gmail. Cada destinatario recibe su propio mail.
+ * Variables de entorno (solo servidor): MAILER_PASSWORD, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN; MAILER_FROM (opcional).
  */
 export const sendMail = createServerFn({ method: "POST" })
   .inputValidator(mailSchema)
   .handler(async ({ data }) => {
     if (!passwordOk(data.password)) throw new Error("Contraseña incorrecta.");
-
-    const apiKey = process.env["RESEND_API_KEY"];
-    if (!apiKey && !useGmailTransport()) throw new Error("Falta RESEND_API_KEY en el servidor.");
 
     const from = process.env["MAILER_FROM"] ?? "Tacuara <hola@tacuara.com.ar>";
     const emails = data.recipients.map(({ email, ...vars }) => {
@@ -51,8 +48,7 @@ export const sendMail = createServerFn({ method: "POST" })
       const { html, text } = renderEmail({ body: data.body, preheader: data.preheader, vars: v });
       return {
         from,
-        to: [email],
-        reply_to: CONTACT,
+        to: email,
         subject: fill(data.subject, v).replace(/[\r\n]+/g, " "),
         html,
         text,
@@ -60,37 +56,17 @@ export const sendMail = createServerFn({ method: "POST" })
       };
     });
 
-    // Por Gmail (alias "Enviar como"): uno por uno; Gmail guarda cada copia en Enviados.
-    if (useGmailTransport()) {
-      const failed: string[] = [];
-      for (const e of emails) {
-        try {
-          await sendViaGmail({ from: e.from, to: e.to[0]!, subject: e.subject, html: e.html, text: e.text, headers: e.headers });
-        } catch (err) {
-          console.error("[mailer] Gmail no pudo enviar a", e.to[0], err);
-          failed.push(e.to[0]!);
-        }
+    // Uno por uno; Gmail guarda cada copia en Enviados.
+    const failed: string[] = [];
+    for (const e of emails) {
+      try {
+        await sendViaGmail(e);
+      } catch (err) {
+        console.error("[mailer] Gmail no pudo enviar a", e.to, err);
+        failed.push(e.to);
       }
-      return { ok: true as const, sent: emails.length - failed.length, savedCopies: emails.length - failed.length, failed };
     }
-
-    const res = await fetch("https://api.resend.com/emails/batch", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey ?? ""}`, "Content-Type": "application/json" },
-      body: JSON.stringify(emails),
-    });
-    if (!res.ok) {
-      const body = await res.text();
-      console.error("[mailer] Resend respondió", res.status, body);
-      throw new Error(`Resend rechazó el envío (${res.status}): ${body.slice(0, 300)}`);
-    }
-    // Copia en Enviados de Gmail (Resend no pasa por Gmail). Si falla, el envío igual ya salió.
-    const copies = await Promise.allSettled(
-      emails.map((e) => saveToSent({ from: e.from, to: e.to[0]!, subject: e.subject, html: e.html, text: e.text })),
-    );
-    const failedCopies = copies.filter((c) => c.status === "rejected");
-    if (failedCopies.length) console.error("[mailer] no se pudo guardar en Enviados", failedCopies[0]);
-    return { ok: true as const, sent: emails.length, savedCopies: emails.length - failedCopies.length, failed: [] as string[] };
+    return { ok: true as const, sent: emails.length - failed.length, failed };
   });
 
 const CONTACT = "hola@tacuara.com.ar";
