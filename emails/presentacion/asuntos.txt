@@ -1,0 +1,8 @@
+Una idea para ordenar lo digital en {{nombre_negocio}}
+Una pregunta sobre {{nombre_negocio}}
+Tecnología y datos para negocios de {{rubro}}
+Hola desde Tacuara, Misiones
+¿Hablamos 15 minutos, {{nombre_negocio}}?
+
+Preheader (68 caracteres):
+Un solo equipo para diseño, software, datos y procesos. Sin vueltas.

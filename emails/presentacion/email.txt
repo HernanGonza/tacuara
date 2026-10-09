@@ -1,0 +1,22 @@
+Hola, {{nombre_negocio|equipo}}:
+
+Somos Tacuara, una consultora de Misiones. Ayudamos a negocios de {{rubro}} en {{ciudad}} a ordenar su parte digital con un solo equipo, sin coordinar cinco proveedores distintos.
+
+Muchos comercios pierden tiempo en tareas manuales, información dispersa y una presencia online que no los representa. Eso es lo que resolvemos:
+
+- Sitios y software a medida, sin plantillas forzadas
+- Datos y tableros para decidir con evidencia, no con intuición
+- Rediseño de procesos: menos pasos manuales, roles claros
+
+Primero escuchamos tu proyecto, después diagnosticamos y entregamos de a poco, con seguimiento. Al final te dejamos documentación y formación para que puedas seguir sin nosotros.
+
+Si te interesa, respondé este mail y coordinamos una charla corta, sin compromiso.
+
+--
+{{remitente_nombre}}
+{{remitente_rol}} · Tacuara
+hola@tacuara.com.ar
+www.tacuara.com.ar
+Tacuara · Transformación digital · Misiones, Argentina
+
+Si no querés recibir más mensajes, respondé BAJA.
