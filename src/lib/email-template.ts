@@ -8,6 +8,7 @@
 
 export const SITE_URL = "https://www.tacuara.com.ar";
 export const LOGO_URL = `${SITE_URL}/email/tacuara-mark.png`;
+export const HEADER_URL = `${SITE_URL}/email/header.png`;
 export const CONTACT_EMAIL = "hola@tacuara.com.ar";
 /** Teléfono/WhatsApp para la firma, ej. "+54 9 376 000 0000". Vacío = no se muestra. */
 export const CONTACT_PHONE: string = "";
@@ -202,14 +203,8 @@ export function renderEmail({ body, preheader = DEFAULT_PREHEADER, vars }: Rende
 <tr><td align="center" style="padding:24px 12px;">
 <!--[if mso]><table role="presentation" width="600" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
 <table role="presentation" class="container bg-card bd" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.white}" style="width:100%;max-width:600px;background-color:${C.white};border:1px dashed ${C.line};">
-<tr><td class="px" style="padding:20px 40px 0 40px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-<td class="tx" style="font-family:${SANS};font-size:22px;line-height:28px;font-weight:700;letter-spacing:-0.5px;color:${C.ink};">tacuara</td>
-<td align="right" class="tx-mute" style="font-family:${MONO};font-size:11px;line-height:28px;letter-spacing:1px;text-transform:uppercase;color:${C.mute};">Misiones, Argentina</td>
-</tr></table>
-</td></tr>
-<tr><td class="px" style="padding:20px 40px 0 40px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="bd" style="border-top:1px dashed ${C.line};font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr>
-<tr><td class="px" style="padding:28px 40px 8px 40px;">
+<tr><td style="font-size:0;line-height:0;"><img src="${HEADER_URL}" width="600" height="280" alt="Tacuara: un solo equipo. Tu proyecto, bien sostenido." style="display:block;width:100%;max-width:600px;height:auto;border:0;outline:none;text-decoration:none;font-family:${SANS};font-size:20px;line-height:26px;font-weight:700;color:${C.green};"></td></tr>
+<tr><td class="px" style="padding:32px 40px 8px 40px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 ${bodyHtml(body)}
 <tr><td class="cta" style="padding:12px 0 8px 0;">

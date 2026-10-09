@@ -17,8 +17,8 @@ export const Route = createFileRoute("/enviar")({
   component: Mailer,
 });
 
-const field = "w-full border border-dashed border-ink/55 bg-white px-3 py-2 text-base outline-none focus:border-impact";
-const hint = "text-sm text-ink/60";
+const field = "w-full border border-dashed border-ink/55 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-impact";
+const hint = "text-xs text-ink/60";
 
 /** Una línea por destinatario: email; negocio; rubro; ciudad (separa con ; , o tab: sirve pegar desde una planilla). */
 function parseRecipients(raw: string) {
@@ -47,6 +47,8 @@ function Mailer() {
   const [body, setBody] = useState(DEFAULT_BODY);
   const [nombre, setNombre] = useState("");
   const [rol, setRol] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [dark, setDark] = useState(false);
   const [status, setStatus] = useState<{ kind: "idle" | "busy" | "ok" | "error"; msg?: string }>({ kind: "idle" });
 
   // La firma se recuerda en este navegador.
@@ -62,10 +64,15 @@ function Mailer() {
   const { list, invalid } = useMemo(() => parseRecipients(raw), [raw]);
   const first = list[0];
   const vars = { ...first, remitente_nombre: nombre, remitente_rol: rol };
+  // Gmail web no aplica el @media de modo oscuro; Apple Mail sí. El selector fuerza uno u otro en la vista previa.
   const preview = useMemo(
-    () => renderEmail({ body, preheader: DEFAULT_PREHEADER, vars }).html,
+    () =>
+      renderEmail({ body, preheader: DEFAULT_PREHEADER, vars }).html.replace(
+        "@media (prefers-color-scheme: dark)",
+        dark ? "@media all" : "@media not all",
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [body, first, nombre, rol],
+    [body, first, nombre, rol, dark],
   );
 
   async function unlock(e: React.FormEvent) {
@@ -81,7 +88,7 @@ function Mailer() {
   }
 
   async function send() {
-    if (!window.confirm(`¿Enviar a ${list.length} destinatario(s)?\n\nAsunto: ${fill(subject, vars)}`)) return;
+    setConfirmOpen(false);
     setStatus({ kind: "busy" });
     try {
       const res = await sendMail({
@@ -95,7 +102,10 @@ function Mailer() {
           remitente_rol: rol || undefined,
         },
       });
-      setStatus({ kind: "ok", msg: `Enviado a ${res.sent} destinatario(s).` });
+      setRaw("");
+      setSubject(DEFAULT_SUBJECTS[0]!);
+      setBody(DEFAULT_BODY);
+      setStatus({ kind: "ok", msg: `Enviado a ${res.sent} destinatario(s). El formulario quedó limpio.` });
     } catch (err) {
       setStatus({ kind: "error", msg: err instanceof Error ? err.message : "Error al enviar." });
     }
@@ -127,57 +137,54 @@ function Mailer() {
   const ready = list.length > 0 && subject.trim() && body.trim() && nombre.trim() && invalid.length === 0 && status.kind !== "busy";
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 text-ink sm:px-8">
-      <div className="mx-auto max-w-[96rem]">
-        <p className="mono-label mb-1">Mandador · sale como hola@tacuara.com.ar</p>
-        <h1 className="display mb-6 text-4xl">Enviar presentación</h1>
-        <div className="grid gap-8 lg:grid-cols-2">
-          <div className="space-y-5">
+    <main className="flex h-screen flex-col overflow-hidden bg-background px-4 py-3 text-ink sm:px-6">
+      <div className="mx-auto flex min-h-0 w-full max-w-[96rem] flex-1 flex-col">
+        <div className="mb-2 flex items-baseline justify-between gap-4 border-b border-dashed border-ink/55 pb-2">
+          <h1 className="display text-2xl">Enviar presentación</h1>
+          <p className="mono-label">Sale como hola@tacuara.com.ar</p>
+        </div>
+        <div className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[minmax(0,26rem)_1fr] xl:grid-cols-[minmax(0,30rem)_1fr]">
+          <div className="flex min-h-0 flex-col gap-2.5 overflow-y-auto pr-1">
             <label className="block space-y-1">
               <span className="mono-label">1 · Destinatarios ({list.length})</span>
               <textarea
-                className={`${field} font-mono text-sm`}
-                rows={5}
+                className={`${field} font-mono text-xs`}
+                rows={3}
                 spellCheck={false}
-                placeholder={"info@ferreteria.com; Ferretería El Tornillo; Ferretería; Posadas\ncontacto@panaderia.com; Panadería Sol; Panadería; Oberá"}
+                placeholder={"info@ferreteria.com; Ferretería El Tornillo; Ferretería; Posadas"}
                 value={raw}
                 onChange={(e) => setRaw(e.target.value)}
               />
               <p className={hint}>Una línea por contacto: email; negocio; rubro; ciudad. Solo el email es obligatorio.</p>
-              {invalid.length > 0 && <p className="text-sm text-destructive">Email inválido: {invalid.join(" | ")}</p>}
+              {invalid.length > 0 && <p className="text-xs text-destructive">Email inválido: {invalid.join(" | ")}</p>}
             </label>
-
-            <div className="space-y-1">
-              <span className="mono-label">2 · Asunto</span>
-              <input className={field} value={subject} onChange={(e) => setSubject(e.target.value)} />
-              <div className="flex flex-wrap gap-2 pt-1">
-                {DEFAULT_SUBJECTS.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    className="rounded-full border border-ink/60 px-3 py-1 text-sm hover:bg-warm"
-                    onClick={() => setSubject(s)}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
 
             <label className="block space-y-1">
-              <span className="mono-label">3 · Mensaje ({words} palabras)</span>
-              <textarea className={field} rows={16} value={body} onChange={(e) => setBody(e.target.value)} />
-              <p className={hint}>
-                Línea en blanco = párrafo nuevo. Una línea que empieza con «- » es una viñeta. {"{{nombre_negocio}}"}, {"{{rubro}}"} y{" "}
-                {"{{ciudad}}"} se completan solos; si falta el dato, queda un texto genérico.
-              </p>
-              {words > 150 && <p className="text-sm text-destructive">Quedó largo: conviene no pasar de 150 palabras.</p>}
-              <button type="button" className="text-sm underline" onClick={() => setBody(DEFAULT_BODY)}>
-                Volver al texto original
-              </button>
+              <span className="mono-label">2 · Asunto</span>
+              <select className={field} value={DEFAULT_SUBJECTS.includes(subject) ? subject : ""} onChange={(e) => e.target.value && setSubject(e.target.value)}>
+                <option value="">Personalizado…</option>
+                {DEFAULT_SUBJECTS.map((x) => (
+                  <option key={x} value={x}>
+                    {x}
+                  </option>
+                ))}
+              </select>
+              <input className={field} value={subject} onChange={(e) => setSubject(e.target.value)} />
             </label>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex min-h-0 flex-1 flex-col space-y-1">
+              <span className="mono-label">3 · Mensaje ({words} palabras)</span>
+              <textarea className={`${field} min-h-[8rem] flex-1`} value={body} onChange={(e) => setBody(e.target.value)} />
+              <p className={hint}>
+                Línea en blanco = párrafo nuevo. «- » al inicio = viñeta. {"{{nombre_negocio}}"}, {"{{rubro}}"} y {"{{ciudad}}"} se completan solos.{" "}
+                <button type="button" className="underline" onClick={() => setBody(DEFAULT_BODY)}>
+                  Texto original
+                </button>
+              </p>
+              {words > 150 && <p className="text-xs text-destructive">Quedó largo: conviene no pasar de 150 palabras.</p>}
+            </label>
+
+            <div className="grid grid-cols-2 gap-2">
               <label className="block space-y-1">
                 <span className="mono-label">4 · Tu nombre</span>
                 <input className={field} value={nombre} onChange={(e) => setNombre(e.target.value)} />
@@ -188,21 +195,68 @@ function Mailer() {
               </label>
             </div>
 
-            <button className="btn-solid h-12 w-full sm:w-fit" disabled={!ready} onClick={send}>
-              {status.kind === "busy" ? "Enviando…" : `Enviar a ${list.length}`}
-            </button>
-            {status.kind === "ok" && <p className="text-sm text-impact">{status.msg}</p>}
-            {status.kind === "error" && <p className="text-sm text-destructive">{status.msg}</p>}
+            <div className="flex items-center gap-3">
+              <button className="btn-solid h-10 shrink-0 disabled:opacity-50" disabled={!ready} onClick={() => setConfirmOpen(true)}>
+                {status.kind === "busy" ? "Enviando…" : `Enviar a ${list.length}`}
+              </button>
+              {status.kind === "ok" && <p className="text-xs text-impact">{status.msg}</p>}
+              {status.kind === "error" && <p className="text-xs text-destructive">{status.msg}</p>}
+            </div>
           </div>
 
-          <div className="space-y-1">
-            <span className="mono-label">
-              Vista previa · asunto: {fill(subject, vars)}
-            </span>
-            <iframe title="Vista previa" sandbox="" srcDoc={preview} className="h-[60rem] w-full border border-dashed border-ink/55 bg-white" />
+          <div className="flex min-h-0 flex-col gap-1">
+            <div className="flex items-center justify-between gap-3">
+              <span className="mono-label truncate">Asunto: {fill(subject, vars)}</span>
+              <div className="flex shrink-0 gap-1 text-xs">
+                {[false, true].map((d) => (
+                  <button
+                    key={String(d)}
+                    type="button"
+                    onClick={() => setDark(d)}
+                    className={`rounded-full border border-ink/60 px-2.5 py-0.5 ${dark === d ? "bg-ink text-white" : "hover:bg-warm"}`}
+                  >
+                    {d ? "Oscuro" : "Claro"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <iframe title="Vista previa" sandbox="" srcDoc={preview} className="min-h-0 w-full flex-1 border border-dashed border-ink/55 bg-white" />
           </div>
         </div>
       </div>
+
+      {confirmOpen && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/60 px-4" role="presentation" onClick={() => setConfirmOpen(false)}>
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="confirm-title"
+            className="w-full max-w-md border border-dashed border-ink/55 bg-white p-6 shadow-[10px_10px_0_0_var(--color-accent)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mono-label text-impact">Confirmar envío</p>
+            <h2 id="confirm-title" className="display mt-2 text-3xl">
+              ¿Enviar a {list.length}?
+            </h2>
+            <p className="mt-3 text-sm leading-snug">
+              <span className="mono-label block text-ink/60">Asunto</span>
+              {fill(subject, vars)}
+            </p>
+            <p className="mt-2 break-words text-sm leading-snug text-ink/70">
+              {list.slice(0, 3).map((r) => r.email).join(", ")}
+              {list.length > 3 && ` y ${list.length - 3} más`}
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button type="button" className="btn-dashed h-11 flex-1" autoFocus onClick={() => setConfirmOpen(false)}>
+                Cancelar
+              </button>
+              <button type="button" className="btn-solid h-11 flex-1" onClick={send}>
+                Sí, enviar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

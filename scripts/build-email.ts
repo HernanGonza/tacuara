@@ -5,6 +5,7 @@ import {
   DEFAULT_SUBJECTS,
   DEFAULT_PREHEADER,
   LOGO_URL,
+  HEADER_URL,
   countWords,
   renderEmail,
   renderFooter,
@@ -26,7 +27,7 @@ writeFileSync(new URL("footer.html", out), renderFooter());
 writeFileSync(new URL("asuntos.txt", out), DEFAULT_SUBJECTS.join("\n") + `\n\nPreheader (${DEFAULT_PREHEADER.length} caracteres):\n${DEFAULT_PREHEADER}\n`);
 
 const iframe = (src: string, w: number) =>
-  `<iframe style="width:${w}px;height:1250px;border:1px solid #9AA48F;background:#fff" srcdoc="${src.replaceAll(LOGO_URL, "../../public/email/tacuara-mark.png").replace(/&/g, "&amp;").replace(/"/g, "&quot;")}"></iframe>`;
+  `<iframe style="width:${w}px;height:1250px;border:1px solid #9AA48F;background:#fff" srcdoc="${src.replaceAll(LOGO_URL, "../../public/email/tacuara-mark.png").replaceAll(HEADER_URL, "../../public/email/header.png").replace(/&/g, "&amp;").replace(/"/g, "&quot;")}"></iframe>`;
 writeFileSync(
   new URL("preview.html", out),
   `<!DOCTYPE html><html lang="es"><meta charset="utf-8"><title>Preview</title>
