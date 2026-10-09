@@ -12,8 +12,8 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState, type ComponentType, type CSSProperties, type FormEvent } from "react";
 
-import markUrl from "@/assets/tacuara-mark-bn.png";
-import photoUrl from "@/assets/bambu-bn.jpg";
+import markUrl from "@/assets/tacuara-mark-bn-96.webp";
+import photoUrl from "@/assets/bambu-bn.webp";
 import { Bauhaus, palettes, ShapeStrip } from "@/components/bauhaus";
 import { Geo } from "@/components/geo";
 import { BackToTop } from "@/components/back-to-top";
@@ -337,7 +337,8 @@ function Index() {
             <br />
             nos define
           </p>
-          <div className="min-w-0 flex-1 overflow-hidden" aria-label={values.join(", ")}>
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <span className="sr-only">{values.join(", ")}</span>
             <div className="marquee-track" aria-hidden="true">
               {[0, 1].map((copy) => (
                 <ul key={copy} className="flex shrink-0 items-center">

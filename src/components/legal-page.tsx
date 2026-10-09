@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import markUrl from "@/assets/tacuara-mark-bn.png";
+import markUrl from "@/assets/tacuara-mark-bn-96.webp";
 
 export function LegalPage({ title, updated, children }: { title: string; updated: string; children: ReactNode }) {
   return (
