@@ -55,7 +55,7 @@ export const sendMail = createServerFn({ method: "POST" })
         subject: fill(data.subject, v).replace(/[\r\n]+/g, " "),
         html,
         text,
-        headers: { "List-Unsubscribe": `<mailto:${CONTACT}?subject=BAJA>` },
+        headers: { "Content-Language": "es", "List-Unsubscribe": `<mailto:${CONTACT}?subject=BAJA>` },
       };
     });
 

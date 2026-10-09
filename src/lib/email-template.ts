@@ -161,9 +161,10 @@ export interface RenderInput {
 export function renderEmail({ body, preheader = DEFAULT_PREHEADER, vars }: RenderInput): { html: string; text: string } {
   const mailto = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Quiero saber más")}`;
   const html = `<!DOCTYPE html>
-<html lang="es" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<html lang="es" xml:lang="es" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Language" content="es">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="color-scheme" content="light dark">
@@ -197,12 +198,12 @@ export function renderEmail({ body, preheader = DEFAULT_PREHEADER, vars }: Rende
   [data-ogsc] .tx-mute { color:#B4BEA8 !important; }
 </style>
 </head>
-<body class="bg-page" style="margin:0;padding:0;background-color:${C.paper};">
+<body class="bg-page" lang="es" style="margin:0;padding:0;background-color:${C.paper};">
 <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:${C.paper};opacity:0;">${esc(preheader)}${"&zwnj;&nbsp;".repeat(60)}</div>
-<table role="presentation" class="bg-page" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.paper}" style="background-color:${C.paper};">
+<table role="presentation" class="bg-page" lang="es" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.paper}" style="background-color:${C.paper};">
 <tr><td align="center" style="padding:24px 12px;">
 <!--[if mso]><table role="presentation" width="600" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
-<table role="presentation" class="container bg-card bd" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.white}" style="width:100%;max-width:600px;background-color:${C.white};border:1px dashed ${C.line};">
+<table role="presentation" class="container bg-card bd" lang="es" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.white}" style="width:100%;max-width:600px;background-color:${C.white};border:1px dashed ${C.line};">
 <tr><td style="font-size:0;line-height:0;"><img src="${HEADER_URL}" width="600" height="280" alt="Tacuara: un solo equipo. Tu proyecto, bien sostenido." style="display:block;width:100%;max-width:600px;height:auto;border:0;outline:none;text-decoration:none;font-family:${SANS};font-size:20px;line-height:26px;font-weight:700;color:${C.green};"></td></tr>
 <tr><td class="px" style="padding:32px 40px 8px 40px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Eye, EyeOff } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   DEFAULT_BODY,
@@ -25,22 +26,32 @@ function parseRecipients(raw: string) {
   const seen = new Set<string>();
   const list: { email: string; nombre_negocio?: string | undefined; rubro?: string | undefined; ciudad?: string | undefined }[] = [];
   const invalid: string[] = [];
+  const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  const add = (email: string, data: { nombre_negocio?: string | undefined; rubro?: string | undefined; ciudad?: string | undefined } = {}) => {
+    if (seen.has(email.toLowerCase())) return;
+    seen.add(email.toLowerCase());
+    list.push({ email, ...data });
+  };
   for (const line of raw.split(/\r?\n/)) {
     if (!line.trim()) continue;
-    const [email = "", nombre_negocio, rubro, ciudad] = line.split(/[\t;,]/).map((s) => s.trim());
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const fields = line.split(/[\t;,\s]*[\t;,][\t;,\s]*|\s+(?=\S+@)/).map((f) => f.trim()).filter(Boolean);
+    const emails = fields.filter(isEmail);
+    if (emails.length > 1) {
+      // Varios emails en la misma línea: cada uno es un destinatario (sin datos).
+      emails.forEach((e) => add(e));
+    } else if (emails.length === 1 && isEmail(fields[0] ?? "")) {
+      const [email = "", nombre_negocio, rubro, ciudad] = fields;
+      add(email, { nombre_negocio: nombre_negocio || undefined, rubro: rubro || undefined, ciudad: ciudad || undefined });
+    } else {
       invalid.push(line.trim());
-      continue;
     }
-    if (seen.has(email.toLowerCase())) continue;
-    seen.add(email.toLowerCase());
-    list.push({ email, nombre_negocio: nombre_negocio || undefined, rubro: rubro || undefined, ciudad: ciudad || undefined });
   }
   return { list, invalid };
 }
 
 function Mailer() {
   const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
   const [raw, setRaw] = useState("");
   const [subject, setSubject] = useState(DEFAULT_SUBJECTS[0]!);
@@ -62,8 +73,8 @@ function Mailer() {
   }, [nombre, rol]);
 
   const { list, invalid } = useMemo(() => parseRecipients(raw), [raw]);
-  const first = list[0];
-  const vars = { ...first, remitente_nombre: nombre, remitente_rol: rol };
+  // La vista previa es siempre la versión genérica (con los textos de reemplazo).
+  const vars = { remitente_nombre: nombre, remitente_rol: rol };
   // Gmail web no aplica el @media de modo oscuro; Apple Mail sí. El selector fuerza uno u otro en la vista previa.
   const preview = useMemo(
     () =>
@@ -72,7 +83,7 @@ function Mailer() {
         dark ? "@media all" : "@media not all",
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [body, first, nombre, rol, dark],
+    [body, nombre, rol, dark],
   );
 
   async function unlock(e: React.FormEvent) {
@@ -116,14 +127,24 @@ function Mailer() {
       <main className="grid min-h-screen place-items-center bg-background px-4 text-ink">
         <form onSubmit={unlock} className="w-full max-w-sm space-y-4">
           <p className="mono-label">Mandador · acceso interno</p>
-          <input
-            type="password"
-            className={field}
-            placeholder="Contraseña"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoFocus
-          />
+          <div className="relative">
+            <input
+              type={showPw ? "text" : "password"}
+              className={`${field} pr-10`}
+              placeholder="Contraseña"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoFocus
+            />
+            <button
+              type="button"
+              className="absolute inset-y-0 right-0 grid w-10 place-items-center text-ink/70 hover:text-ink"
+              aria-label={showPw ? "Ocultar contraseña" : "Mostrar contraseña"}
+              onClick={() => setShowPw((v) => !v)}
+            >
+              {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
           <button className="btn-solid h-12 w-full" disabled={status.kind === "busy"}>
             Entrar
           </button>
