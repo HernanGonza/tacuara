@@ -13,7 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 // Dominio definitivo; las og:image necesitan URL absoluta para que WhatsApp/LinkedIn/etc. la tomen.
-const SITE_URL = "https://tacuara.com.ar";
+const SITE_URL = "https://www.tacuara.com.ar";
 
 function NotFoundComponent() {
   return (
@@ -84,7 +84,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Acompañamos la transformación digital de tu organización: diseño, software, datos, procesos y formación desde Misiones.",
+          "Consultora misionera dedicada a la transformación digital, en Posadas, Misiones. Diseño, software a medida, datos, procesos y capacitación con un mismo equipo.",
       },
       { name: "author", content: "Tacuara" },
       { property: "og:title", content: "Tacuara" },
@@ -101,6 +101,27 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: `${SITE_URL}/og-image.png` },
       { name: "theme-color", content: "#ffffff" },
     ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            { "@type": "WebSite", "@id": `${SITE_URL}/#website`, name: "Tacuara", url: SITE_URL, inLanguage: "es-AR" },
+            {
+              "@type": "Organization",
+              "@id": `${SITE_URL}/#organization`,
+              name: "Tacuara",
+              url: SITE_URL,
+              logo: `${SITE_URL}/logo.png`,
+              email: "hola@tacuara.com.ar",
+              description: "Consultora misionera dedicada a la transformación digital.",
+              address: { "@type": "PostalAddress", addressLocality: "Posadas", addressRegion: "Misiones", addressCountry: "AR" },
+            },
+          ],
+        }),
+      },
+    ],
     links: [
       {
         rel: "stylesheet",
@@ -109,7 +130,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" },
-      { rel: "icon", href: "/favicon.png", type: "image/png" },
+      { rel: "icon", href: "/favicon.ico", sizes: "48x48" },
+      { rel: "icon", href: "/favicon-48.png", type: "image/png", sizes: "48x48" },
+      { rel: "icon", href: "/favicon-96.png", type: "image/png", sizes: "96x96" },
+      { rel: "icon", href: "/favicon-192.png", type: "image/png", sizes: "192x192" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),

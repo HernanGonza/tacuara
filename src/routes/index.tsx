@@ -47,7 +47,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Consultora de Misiones en transformación digital: diseño, software a medida, datos, rediseño de procesos y capacitación, con un mismo equipo.",
+          "Consultora misionera dedicada a la transformación digital, en Posadas, Misiones. Diseño, software a medida, datos, procesos y capacitación con un mismo equipo.",
       },
       { property: "og:title", content: "Tacuara | Un equipo para sostener tu proyecto" },
       {
