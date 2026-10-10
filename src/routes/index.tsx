@@ -131,130 +131,27 @@ function stripClip({ tl, tr, bl, br, step }: (typeof strips)[number]) {
   return `polygon(${top}, ${100 - br}% 100%, ${bl}% 100%)`;
 }
 
-function ServiceCard({
-  service,
-  index,
-  live = false,
-  showTitle = true,
-  fit = false,
-}: {
-  service: (typeof services)[number];
-  index: number;
-  live?: boolean;
-  showTitle?: boolean;
-  /** Escritorio con la sección pegada: la ilustración se achica con la altura de la ventana para que todo entre. */
-  fit?: boolean;
-}) {
-  return (
-    <article
-      className="flex flex-col border border-dashed border-ink/55 bg-white shadow-[10px_10px_0_0_var(--color-accent)]"
-      {...(live ? { "aria-live": "polite" as const } : {})}
-    >
-      <div className="flex items-center justify-between px-5 pt-4 sm:px-6">
-        <span className="mono-label text-ink/70">0{index + 1} / 05</span>
-        <span className="mono-label text-impact">{service.title}</span>
-      </div>
-      <div className="dots mx-5 mt-3 border border-dashed border-ink/40 bg-warm sm:mx-6">
-        <div className={fit ? "mx-auto aspect-[400/220] h-[min(30svh,19rem)] max-w-full" : "aspect-[400/220]"} key={index}>
-          <ServiceArt index={index} />
-        </div>
-      </div>
-      <div className="p-5 sm:p-6">
-        {showTitle && <p className="display text-3xl sm:text-4xl">{service.title}</p>}
-        <p className={`${showTitle ? "mt-3" : ""} text-base leading-snug sm:text-lg`}>{service.copy}</p>
-        <ul className="mt-4 flex flex-wrap gap-2">
-          {service.tags.map((tag) => (
-            <li key={tag} className="rounded-full border border-ink/60 px-3 py-1 text-sm">
-              {tag}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </article>
-  );
-}
-
 function Index() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [listInView, setListInView] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
   const bandRef = useRef<HTMLDivElement>(null);
 
-  // Servicios en escritorio: la sección queda pegada y el scroll va abriendo un servicio tras otro.
-  // El hover/click sigue funcionando: salta al servicio elegido hasta el próximo cambio por scroll.
-  const [pinned, setPinned] = useState(false);
-  const pinRef = useRef<HTMLElement>(null);
-  const paneRef = useRef<HTMLDivElement>(null);
-  const scrollIdx = useRef(0);
-
+  // Los servicios rotan solos mientras el bloque está a la vista y el mouse no está encima.
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px) and (prefers-reduced-motion: no-preference)");
-    const apply = () => setPinned(mq.matches);
-    apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
+    const el = listRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => setListInView(Boolean(entry?.isIntersecting)), { threshold: 0.35 });
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
-
   useEffect(() => {
-    if (!pinned) return;
-    let frame = 0;
-    const update = () => {
-      frame = 0;
-      const section = pinRef.current;
-      const pane = paneRef.current;
-      if (!section || !pane) return;
-      const scrollable = Math.max(1, section.offsetHeight - pane.offsetHeight);
-      const p = Math.min(1, Math.max(0, (72 - section.getBoundingClientRect().top) / scrollable));
-      const idx = Math.min(services.length - 1, Math.floor(p * services.length));
-      if (idx !== scrollIdx.current) {
-        scrollIdx.current = idx;
-        setActive(idx);
-      }
-    };
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      cancelAnimationFrame(frame);
-    };
-  }, [pinned]);
-
-  // Celular: cada tarjeta va debajo de su palabra y se abre cuando esa palabra pasa la mitad de la pantalla.
-  // Las que ya se abrieron quedan abiertas, así lo que ya se ve arriba no se mueve al seguir bajando.
-  const [openUpTo, setOpenUpTo] = useState(-1);
-  const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setOpenUpTo(services.length - 1);
-      return;
-    }
-    let frame = 0;
-    const update = () => {
-      frame = 0;
-      const line = window.innerHeight * 0.5;
-      let idx = -1;
-      itemRefs.current.forEach((li, i) => {
-        if (li && li.offsetParent !== null && li.getBoundingClientRect().top <= line) idx = i;
-      });
-      setOpenUpTo(idx);
-    };
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      cancelAnimationFrame(frame);
-    };
-  }, []);
+    if (paused || !listInView || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(() => setActive((i) => (i + 1) % services.length), 4200);
+    return () => clearInterval(id);
+  }, [paused, listInView]);
 
   // Scroll: --sy para las formas de fondo.
   useEffect(() => {
@@ -469,80 +366,59 @@ function Index() {
         </div>
       </section>
 
-      {/* SERVICIOS: lista + detalle */}
-      <section
-        ref={pinRef}
-        className="dots relative border-b border-dashed border-ink/55 bg-background"
-        style={pinned ? { height: `${100 + (services.length - 1) * 60}svh` } : undefined}
-      >
-        {/* Celular: cada tarjeta debajo de su palabra, abierta por el scroll */}
-        <ul className="mx-auto max-w-[96rem] px-4 py-14 sm:px-8 lg:hidden">
-          {services.map((service, index) => {
-            const open = index <= openUpTo;
-            return (
-              <li
-                key={service.title}
-                ref={(el) => {
-                  itemRefs.current[index] = el;
-                }}
-              >
-                <h3 className="m-0">
-                  <button
-                    type="button"
-                    className="svc-line display flex w-full cursor-pointer items-start gap-3 text-left text-[clamp(1.9rem,8.5vw,3.4rem)]"
-                    aria-expanded={open}
-                    aria-current={index === openUpTo}
-                    onClick={() => setOpenUpTo(index)}
-                  >
-                    <span className="mono-label shrink-0 text-[0.7rem] tracking-normal">0{index + 1}</span>
-                    <span>{service.title}</span>
-                  </button>
-                </h3>
-                <div
-                  className={`grid transition-[grid-template-rows,opacity] duration-500 ease-out ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
-                  aria-hidden={!open}
+      {/* SERVICIOS: lista + detalle (caben juntos en pantalla) */}
+      <section className="dots relative border-b border-dashed border-ink/55 bg-background">
+        <div
+          ref={listRef}
+          className="mx-auto grid max-w-[96rem] gap-10 px-4 py-14 sm:px-8 lg:min-h-[calc(100svh-4.5rem)] lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-16 lg:py-16"
+        >
+          <ul className="space-y-1" data-sr-group>
+            {services.map(({ title }, index) => (
+              <li key={title}>
+                <button
+                  type="button"
+                  className="svc-line display flex w-full cursor-pointer items-start gap-3 text-left text-[clamp(1.9rem,4.6vw,4.4rem)]"
+                  aria-current={index === active}
+                  onMouseEnter={() => {
+                    setActive(index);
+                    setPaused(true);
+                  }}
+                  onMouseLeave={() => setPaused(false)}
+                  onFocus={() => {
+                    setActive(index);
+                    setPaused(true);
+                  }}
+                  onBlur={() => setPaused(false)}
+                  onClick={() => setActive(index)}
                 >
-                  <div className="overflow-hidden">
-                    <div className="pb-8 pl-1 pr-3 pt-3">
-                      {open && <ServiceCard service={service} index={index} showTitle={false} />}
-                    </div>
-                  </div>
-                </div>
+                  <span className="mono-label shrink-0 text-[0.7rem] tracking-normal">0{index + 1}</span>
+                  <span>{title}</span>
+                </button>
               </li>
-            );
-          })}
-        </ul>
-
-        {/* Escritorio: lista a la izquierda y detalle a la derecha (con la sección pegada) */}
-        <div ref={paneRef} className={`hidden lg:block ${pinned ? "sticky top-[72px] h-[calc(100svh-72px)]" : ""}`}>
-          <div
-            className={`mx-auto grid w-full max-w-[96rem] gap-10 px-4 sm:px-8 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-16 ${pinned ? "h-full py-4" : "lg:min-h-[calc(100svh-4.5rem)] lg:py-16"}`}
-          >
-            <ul className="space-y-1">
-              {services.map(({ title }, index) => (
-                <li key={title}>
-                  <button
-                    type="button"
-                    className="svc-line display flex w-full cursor-pointer items-start gap-3 text-left text-[clamp(1.9rem,4.6vw,4.4rem)] [@media(max-height:640px)]:text-[clamp(1.9rem,min(4.6vw,6.5svh),4.4rem)]"
-                    aria-current={index === active}
-                    onMouseEnter={() => setActive(index)}
-                    onMouseLeave={() => {
-                      if (pinned) setActive(scrollIdx.current);
-                    }}
-                    onFocus={() => setActive(index)}
-                    onBlur={() => {
-                      if (pinned) setActive(scrollIdx.current);
-                    }}
-                    onClick={() => setActive(index)}
-                  >
-                    <span className="mono-label shrink-0 text-[0.7rem] tracking-normal">0{index + 1}</span>
-                    <span>{title}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <ServiceCard service={current} index={active} live fit={pinned} />
-          </div>
+            ))}
+          </ul>
+          <article className="flex flex-col border border-dashed border-ink/55 bg-white shadow-[10px_10px_0_0_var(--color-accent)]" aria-live="polite">
+            <div className="flex items-center justify-between px-5 pt-4 sm:px-6">
+              <span className="mono-label text-ink/70">0{active + 1} / 05</span>
+              <span className="mono-label text-impact">{current.title}</span>
+            </div>
+            <div className="dots mx-5 mt-3 border border-dashed border-ink/40 bg-warm sm:mx-6">
+              <div className="aspect-[400/220]" key={active}>
+                <ServiceArt index={active} />
+              </div>
+            </div>
+            <div className="p-5 sm:p-6">
+              <h3 className="display text-3xl sm:text-4xl">{current.title}</h3>
+              <p className="mt-3 text-base leading-snug sm:text-lg">{current.copy}</p>
+              <ul className="mt-4 flex flex-wrap gap-2">
+                {current.tags.map((tag) => (
+                  <li key={tag} className="rounded-full border border-ink/60 px-3 py-1 text-sm">
+                    {tag}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </article>
         </div>
       </section>
 
