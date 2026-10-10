@@ -14,7 +14,7 @@ import { checkMailerPassword, sendMail } from "@/lib/mailer";
 
 export const Route = createFileRoute("/enviar")({
   head: () => ({
-    meta: [{ title: "Mandador · Tacuara" }, { name: "robots", content: "noindex, nofollow" }],
+    meta: [{ title: "Mail · Tacuara" }, { name: "robots", content: "noindex, nofollow" }],
   }),
   component: Mailer,
 });
@@ -132,7 +132,7 @@ function Mailer() {
     return (
       <main className="grid min-h-screen place-items-center bg-background px-4 text-ink">
         <form onSubmit={unlock} className="w-full max-w-sm space-y-4">
-          <p className="mono-label">Mandador · acceso interno</p>
+          <p className="mono-label">Mail · acceso interno</p>
           <div className="relative">
             <input
               type={showPw ? "text" : "password"}
