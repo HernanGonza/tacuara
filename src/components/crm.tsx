@@ -1,7 +1,6 @@
 import { ExternalLink, Plus, RefreshCw, Search, Send, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { crmCreate, crmDelete, crmList, crmSend, crmUpdate, ESTADOS, type Empresa, type Estado } from "@/lib/crm";
-import { DEFAULT_PREHEADER, fill } from "@/lib/email-template";
+import { crmCreate, crmDelete, crmList, crmUpdate, ESTADOS, type Empresa, type Estado } from "@/lib/crm";
 
 const field = "w-full border border-dashed border-ink/55 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-impact";
 const small = "border border-dashed border-ink/55 bg-white px-2 py-1 text-xs outline-none focus:border-impact";
@@ -55,16 +54,14 @@ function parseImport(raw: string) {
 
 export function Crm({
   password,
-  subject,
-  body,
-  nombre,
-  rol,
+  reloadKey,
+  onCompose,
 }: {
   password: string;
-  subject: string;
-  body: string;
-  nombre: string;
-  rol: string;
+  /** Cambia cuando se registró un envío desde la pestaña Enviar, para refrescar la lista. */
+  reloadKey: number;
+  /** Lleva las empresas a la pestaña Enviar (con email, nombre, rubro y zona cargados). */
+  onCompose: (empresas: Empresa[]) => void;
 }) {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [loading, setLoading] = useState(false);
@@ -80,8 +77,6 @@ export function Crm({
   const [pageSize, setPageSize] = useState(50);
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [sendIds, setSendIds] = useState<string[] | null>(null);
-  const [sending, setSending] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState({ nombre: "", email: "", rubro: "", zona: "", web: "" });
@@ -103,7 +98,7 @@ export function Crm({
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, reloadKey]);
 
   const zonas = useMemo(() => sortZonas(empresas), [empresas]);
   const rubros = useMemo(() => [...new Set(empresas.map((e) => e.rubro))].sort((a, b) => a.localeCompare(b, "es")), [empresas]);
@@ -208,49 +203,14 @@ export function Crm({
     }
   }
 
-  async function send() {
-    if (!sendIds) return;
-    const ids = sendIds;
-    setSendIds(null);
-    setSending(true);
-    setError("");
-    setNotice("");
-    const total = { sent: 0, failed: [] as string[], skipped: 0 };
-    try {
-      for (let i = 0; i < ids.length; i += 50) {
-        const res = await crmSend({
-          data: {
-            password,
-            ids: ids.slice(i, i + 50),
-            subject,
-            body,
-            preheader: DEFAULT_PREHEADER,
-            ...(nombre ? { remitente_nombre: nombre } : {}),
-            ...(rol ? { remitente_rol: rol } : {}),
-          },
-        });
-        total.sent += res.sent.length;
-        total.failed.push(...res.failed);
-        total.skipped += res.skipped.length;
-      }
-      setSelected(new Set());
-      setNotice(`Enviado a ${total.sent}.${total.skipped ? ` ${total.skipped} descartada(s) salteadas.` : ""}`);
-      if (total.failed.length) setError(`No se pudo enviar a: ${total.failed.join(", ")}.`);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al enviar.");
-    } finally {
-      setSending(false);
-      await load();
-    }
+  function compose(ids: string[]) {
+    const rows = empresas.filter((e) => ids.includes(e.id) && e.estado !== "descartado");
+    if (rows.length === 0) return;
+    setNotice(rows.length < ids.length ? `${ids.length - rows.length} descartada(s) quedaron afuera.` : "");
+    setSelected(new Set());
+    onCompose(rows);
   }
 
-  const sendRows = sendIds ? empresas.filter((e) => sendIds.includes(e.id)) : [];
-  const alreadyContacted = sendRows.filter((e) => e.envios_count > 0).length;
-  const discarded = sendRows.filter((e) => e.estado === "descartado").length;
-  const first = sendRows[0];
-  const previewSubject = first
-    ? fill(subject, { nombre_negocio: first.nombre, rubro: first.rubro, ciudad: first.zona, remitente_nombre: nombre, remitente_rol: rol })
-    : subject;
   const visibleIds = pageGroups.flatMap((g) => g.rows.map((e) => e.id));
   const allVisible = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
   const importParsed = useMemo(() => parseImport(bulk), [bulk]);
@@ -399,8 +359,8 @@ export function Crm({
           {selected.size > 0 && (
             <>
               <span className="mono-label">{selected.size} seleccionada(s)</span>
-              <button type="button" className="btn-solid !min-h-8 !px-3 text-xs" disabled={sending} onClick={() => setSendIds([...selected])}>
-                <Send size={14} /> Enviar a {selected.size}
+              <button type="button" className="btn-solid !min-h-8 !px-3 text-xs" onClick={() => compose([...selected])}>
+                <Send size={14} /> Escribir a {selected.size}
               </button>
               <button type="button" className="underline" onClick={() => setSelected(new Set())}>
                 Limpiar selección
@@ -520,10 +480,10 @@ export function Crm({
                         <button
                           type="button"
                           className="inline-grid size-7 place-items-center hover:bg-ink hover:text-white disabled:opacity-30"
-                          aria-label={`Enviar mail a ${e.nombre}`}
-                          title="Enviar con el mensaje de la pestaña Enviar"
-                          disabled={sending || e.estado === "descartado"}
-                          onClick={() => setSendIds([e.id])}
+                          aria-label={`Escribir mail a ${e.nombre}`}
+                          title="Abrir en la pestaña Enviar"
+                          disabled={e.estado === "descartado"}
+                          onClick={() => compose([e.id])}
                         >
                           <Send size={14} />
                         </button>
@@ -568,43 +528,6 @@ export function Crm({
           ))}
         </select>
       </div>
-
-      {sendIds && first && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/60 px-4" role="presentation" onClick={() => setSendIds(null)}>
-          <div
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="crm-confirm-title"
-            className="w-full max-w-md border border-dashed border-ink/55 bg-white p-6 shadow-[10px_10px_0_0_var(--color-accent)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p className="mono-label text-impact">Confirmar envío</p>
-            <h2 id="crm-confirm-title" className="display mt-2 text-3xl">
-              ¿Enviar a {sendRows.length}?
-            </h2>
-            <p className="mt-3 text-sm leading-snug">
-              <span className="mono-label block text-ink/60">Asunto{sendRows.length > 1 ? " (ejemplo)" : ""}</span>
-              {previewSubject}
-            </p>
-            <p className="mt-2 break-words text-sm leading-snug text-ink/70">
-              {sendRows.slice(0, 3).map((r) => r.nombre).join(", ")}
-              {sendRows.length > 3 && ` y ${sendRows.length - 3} más`}
-            </p>
-            <p className="mt-2 text-xs text-ink/60">Va el mensaje de la pestaña Enviar, con el nombre, rubro y zona de cada empresa.</p>
-            {alreadyContacted > 0 && <p className="mt-2 text-xs text-destructive">{alreadyContacted} ya recibió(eron) un mail antes.</p>}
-            {discarded > 0 && <p className="mt-2 text-xs text-destructive">{discarded} está(n) descartada(s) y se van a saltear.</p>}
-            {!nombre.trim() && <p className="mt-2 text-xs text-destructive">Completá tu nombre en la pestaña Enviar (sale en la firma).</p>}
-            <div className="mt-6 flex gap-3">
-              <button type="button" className="btn-dashed h-11 flex-1" autoFocus onClick={() => setSendIds(null)}>
-                Cancelar
-              </button>
-              <button type="button" className="btn-solid h-11 flex-1 disabled:opacity-50" disabled={!nombre.trim() || !subject.trim() || !body.trim()} onClick={() => void send()}>
-                Sí, enviar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

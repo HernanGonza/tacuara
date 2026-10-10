@@ -32,7 +32,7 @@ function passwordOk(input: string): boolean {
 }
 
 /**
- * Mandador interno (ruta oculta /enviar). El servidor arma el HTML con la plantilla fija
+ * Mandador interno (ruta oculta /panel). El servidor arma el HTML con la plantilla fija
  * (src/lib/email-template.ts): quien envía solo escribe texto. Sale por Gmail con el alias "Enviar como"
  * hola@tacuara.com.ar (queda en Enviados); las respuestas llegan por ImprovMX a Gmail. Cada destinatario recibe su propio mail.
  * Variables de entorno (solo servidor): MAILER_PASSWORD, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN.

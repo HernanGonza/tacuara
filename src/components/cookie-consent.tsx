@@ -37,7 +37,7 @@ export function CookieConsent() {
   }
 
   // La herramienta interna no lleva banner ni medición.
-  if (!ready || pathname.startsWith("/enviar")) return null;
+  if (!ready || pathname.startsWith("/panel")) return null;
 
   return (
     <>

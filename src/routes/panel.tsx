@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Eye, EyeOff } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DEFAULT_BODY,
   DEFAULT_PREHEADER,
@@ -12,8 +12,9 @@ import {
 import { Crm } from "@/components/crm";
 import { Inbox } from "@/components/inbox";
 import { checkMailerPassword, sendMail } from "@/lib/mailer";
+import { crmMarkSent } from "@/lib/crm";
 
-export const Route = createFileRoute("/enviar")({
+export const Route = createFileRoute("/panel")({
   head: () => ({
     meta: [{ title: "Mail · Tacuara" }, { name: "robots", content: "noindex, nofollow" }],
   }),
@@ -51,6 +52,13 @@ function parseRecipients(raw: string) {
   return { list, invalid };
 }
 
+/** Reemplaza solo las variables de la empresa ({{nombre_negocio}}, {{rubro}}, {{ciudad}}), con su texto de respaldo incluido. */
+function fillCompany(text: string, e: { nombre: string; rubro: string; zona: string }) {
+  return text.replace(/\{\{\s*(nombre_negocio|rubro|ciudad)\s*(?:\|[^}]*)?\}\}/g, (_m, key: string) =>
+    key === "rubro" ? e.rubro.toLowerCase() : key === "ciudad" ? e.zona : e.nombre,
+  );
+}
+
 function Mailer() {
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -61,6 +69,9 @@ function Mailer() {
   const [nombre, setNombre] = useState("");
   const [rol, setRol] = useState("");
   const [tab, setTab] = useState<"enviar" | "bandeja" | "empresas">("enviar");
+  // Plantilla de asunto/mensaje antes de completarla con una empresa, para poder rehacerla con la siguiente.
+  const tpl = useRef<{ subject: string; body: string; subjectOut: string; bodyOut: string } | null>(null);
+  const [crmReload, setCrmReload] = useState(0);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [dark, setDark] = useState(false);
   const [status, setStatus] = useState<{ kind: "idle" | "busy" | "ok" | "error"; msg?: string }>({ kind: "idle" });
@@ -75,9 +86,32 @@ function Mailer() {
     localStorage.setItem("mailer.rol", rol);
   }, [nombre, rol]);
 
-  const { list, invalid } = useMemo(() => parseRecipients(raw), [raw]);
-  // La vista previa es siempre la versión genérica (con los textos de reemplazo).
-  const vars = { remitente_nombre: nombre, remitente_rol: rol };
+  // Datos de las empresas traídas desde el CRM (por email): el campo de destinatarios muestra solo el email.
+  const [known, setKnown] = useState<Record<string, { nombre_negocio: string; rubro: string; ciudad: string }>>({});
+  const parsed = useMemo(() => parseRecipients(raw), [raw]);
+  const invalid = parsed.invalid;
+  const list = useMemo(
+    () =>
+      parsed.list.map((r) => {
+        const k = known[r.email.toLowerCase()];
+        return {
+          email: r.email,
+          nombre_negocio: r.nombre_negocio ?? k?.nombre_negocio,
+          rubro: r.rubro ?? k?.rubro,
+          ciudad: r.ciudad ?? k?.ciudad,
+        };
+      }),
+    [parsed.list, known],
+  );
+  // La vista previa usa los datos del primer destinatario si los hay; si no, la versión genérica (con los textos de reemplazo).
+  const first = list[0];
+  const vars = {
+    remitente_nombre: nombre,
+    remitente_rol: rol,
+    nombre_negocio: first?.nombre_negocio,
+    rubro: first?.rubro,
+    ciudad: first?.ciudad,
+  };
   // Gmail web no aplica el @media de modo oscuro; Apple Mail sí. El selector fuerza uno u otro en la vista previa.
   const preview = useMemo(
     () =>
@@ -86,7 +120,7 @@ function Mailer() {
         dark ? "@media all" : "@media not all",
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [body, nombre, rol, dark],
+    [body, nombre, rol, dark, first?.nombre_negocio, first?.rubro, first?.ciudad],
   );
 
   async function unlock(e: React.FormEvent) {
@@ -120,6 +154,14 @@ function Mailer() {
         setStatus({ kind: "error", msg: `No se pudo enviar a: ${res.failed.join(", ")}.${res.sent ? ` Se enviaron ${res.sent}.` : ""}` });
         return;
       }
+      // Si alguno es una empresa del CRM, queda anotado como enviado. Si esto falla, el mail ya salió igual.
+      try {
+        await crmMarkSent({ data: { password, emails: list.map((r) => r.email), subject: fill(subject, vars) } });
+        setCrmReload((n) => n + 1);
+      } catch (err) {
+        console.error("[panel] no se pudo registrar en el CRM", err);
+      }
+      tpl.current = null;
       setRaw("");
       setSubject(DEFAULT_SUBJECTS[0]!);
       setBody(DEFAULT_BODY);
@@ -184,7 +226,26 @@ function Mailer() {
         </div>
         {tab === "bandeja" && <Inbox password={password} nombre={nombre} rol={rol} />}
         <div className={`${tab === "empresas" ? "flex" : "hidden"} min-h-0 flex-1 flex-col`}>
-          <Crm password={password} subject={subject} body={body} nombre={nombre} rol={rol} />
+          <Crm
+            password={password}
+            reloadKey={crmReload}
+            onCompose={(rows) => {
+              setKnown(Object.fromEntries(rows.map((e) => [e.email.toLowerCase(), { nombre_negocio: e.nombre, rubro: e.rubro, ciudad: e.zona }])));
+              setRaw(rows.map((e) => e.email).join("\n"));
+              // Con una sola empresa, el asunto y el mensaje quedan con su nombre ya puesto (editable). Con varias, siguen las variables.
+              const t = tpl.current;
+              const baseSubject = t && subject === t.subjectOut ? t.subject : subject;
+              const baseBody = t && body === t.bodyOut ? t.body : body;
+              const one = rows.length === 1 ? rows[0] : undefined;
+              const subjectOut = one ? fillCompany(baseSubject, one) : baseSubject;
+              const bodyOut = one ? fillCompany(baseBody, one) : baseBody;
+              tpl.current = { subject: baseSubject, body: baseBody, subjectOut, bodyOut };
+              setSubject(subjectOut);
+              setBody(bodyOut);
+              setStatus({ kind: "idle" });
+              setTab("enviar");
+            }}
+          />
         </div>
         <div className={`${tab === "enviar" ? "grid" : "hidden"} flex-1 grid-cols-[minmax(0,1fr)] gap-5 lg:min-h-0 lg:grid-cols-[minmax(0,26rem)_1fr] xl:grid-cols-[minmax(0,30rem)_1fr]`}>
           <div className="flex min-w-0 flex-col gap-2.5 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
@@ -263,7 +324,7 @@ function Mailer() {
                 ))}
               </div>
             </div>
-            <iframe title="Vista previa" sandbox="" srcDoc={preview} className="h-[34rem] w-full border border-dashed border-ink/55 bg-white lg:h-auto lg:min-h-0 lg:flex-1" />
+            <iframe key={tab} title="Vista previa" sandbox="" srcDoc={preview} className="h-[34rem] w-full border border-dashed border-ink/55 bg-white lg:h-auto lg:min-h-0 lg:flex-1" />
           </div>
         </div>
       </div>

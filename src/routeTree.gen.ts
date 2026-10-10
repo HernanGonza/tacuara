@@ -10,7 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as EnviarRouteImport } from './routes/enviar'
+import { Route as PanelRouteImport } from './routes/panel'
 import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as TerminosRouteImport } from './routes/terminos'
 
@@ -19,9 +19,9 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EnviarRoute = EnviarRouteImport.update({
-  id: '/enviar',
-  path: '/enviar',
+const PanelRoute = PanelRouteImport.update({
+  id: '/panel',
+  path: '/panel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacidadRoute = PrivacidadRouteImport.update({
@@ -37,34 +37,34 @@ const TerminosRoute = TerminosRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/enviar': typeof EnviarRoute
+  '/panel': typeof PanelRoute
   '/privacidad': typeof PrivacidadRoute
   '/terminos': typeof TerminosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/enviar': typeof EnviarRoute
+  '/panel': typeof PanelRoute
   '/privacidad': typeof PrivacidadRoute
   '/terminos': typeof TerminosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/enviar': typeof EnviarRoute
+  '/panel': typeof PanelRoute
   '/privacidad': typeof PrivacidadRoute
   '/terminos': typeof TerminosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/enviar' | '/privacidad' | '/terminos'
+  fullPaths: '/' | '/panel' | '/privacidad' | '/terminos'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/enviar' | '/privacidad' | '/terminos'
-  id: '__root__' | '/' | '/enviar' | '/privacidad' | '/terminos'
+  to: '/' | '/panel' | '/privacidad' | '/terminos'
+  id: '__root__' | '/' | '/panel' | '/privacidad' | '/terminos'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  EnviarRoute: typeof EnviarRoute
+  PanelRoute: typeof PanelRoute
   PrivacidadRoute: typeof PrivacidadRoute
   TerminosRoute: typeof TerminosRoute
 }
@@ -78,11 +78,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/enviar': {
-      id: '/enviar'
-      path: '/enviar'
-      fullPath: '/enviar'
-      preLoaderRoute: typeof EnviarRouteImport
+    '/panel': {
+      id: '/panel'
+      path: '/panel'
+      fullPath: '/panel'
+      preLoaderRoute: typeof PanelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacidad': {
@@ -104,7 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  EnviarRoute: EnviarRoute,
+  PanelRoute: PanelRoute,
   PrivacidadRoute: PrivacidadRoute,
   TerminosRoute: TerminosRoute,
 }

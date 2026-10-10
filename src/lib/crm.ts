@@ -1,11 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
-import { fill, renderEmail } from "./email-template";
-import { sendViaGmail } from "./inbox";
 
 /**
- * Mini CRM de empresas (pestaña "Empresas" de /enviar). Los datos viven en Supabase (tablas public.empresas y
+ * Mini CRM de empresas (pestaña "Empresas" de /panel). Los datos viven en Supabase (tablas public.empresas y
  * public.envios, ver supabase/migrations). El acceso es SOLO desde el servidor: las tablas tienen RLS sin políticas,
  * así que la clave pública (anon) no puede leer ni escribir nada. Se usa la clave secreta (service_role).
  * Variables de entorno (solo servidor): SUPABASE_URL, SUPABASE_SECRET_KEY, MAILER_PASSWORD (+ las de Google para enviar).
@@ -30,8 +28,6 @@ export interface Empresa {
   ultimo_envio_at: string | null;
   created_at: string;
 }
-
-const MAX_SEND = 50;
 
 function passwordOk(input: string): boolean {
   const expected = process.env["MAILER_PASSWORD"];
@@ -133,78 +129,34 @@ export const crmDelete = createServerFn({ method: "POST" })
   });
 
 /**
- * Envía el mismo mensaje (con {{nombre_negocio}}, {{rubro}} y {{ciudad}} completados por empresa) a las empresas elegidas,
- * y deja registrado el envío. Las "descartado" se saltean. Una "nuevo" pasa a "contactado".
+ * Registra en el CRM los mails que se mandaron desde la pestaña Enviar: por cada email que sea de una empresa cargada
+ * suma un envío al historial y a sus contadores, y pasa "nuevo" a "contactado". Los emails que no están en el CRM se ignoran.
  */
-export const crmSend = createServerFn({ method: "POST" })
-  .inputValidator(
-    auth.extend({
-      ids: z.array(z.string().uuid()).min(1).max(MAX_SEND),
-      subject: text(200).min(1),
-      body: text(10_000).min(1),
-      preheader: text(200).optional(),
-      remitente_nombre: text(100).optional(),
-      remitente_rol: text(100).optional(),
-    }),
-  )
+export const crmMarkSent = createServerFn({ method: "POST" })
+  .inputValidator(auth.extend({ emails: z.array(emailField).min(1).max(500), subject: text(200).min(1) }))
   .handler(async ({ data }) => {
     assertAuth(data.password);
-    const empresas = await db<Empresa[]>(`empresas?id=in.(${data.ids.join(",")})&select=*`);
-    const sent: string[] = [];
-    const failed: string[] = [];
-    const skipped: string[] = [];
-
+    const list = [...new Set(data.emails)].map((e) => `"${e}"`).join(",");
+    const empresas = await db<Empresa[]>(`empresas?email=in.(${encodeURIComponent(list)})&select=*`);
+    const now = new Date().toISOString();
+    let marked = 0;
     for (const e of empresas) {
-      if (e.estado === "descartado") {
-        skipped.push(e.nombre);
-        continue;
-      }
-      const vars = {
-        nombre_negocio: e.nombre,
-        rubro: e.rubro,
-        ciudad: e.zona,
-        remitente_nombre: data.remitente_nombre,
-        remitente_rol: data.remitente_rol,
-      };
-      const subject = fill(data.subject, vars).replace(/[\r\n]+/g, " ");
-      const { html, text: plain } = renderEmail({ body: data.body, preheader: data.preheader, vars });
-      let error: string | null = null;
       try {
-        await sendViaGmail({
-          to: e.email,
-          subject,
-          html,
-          text: plain,
-          headers: { "Content-Language": "es", "List-Unsubscribe": "<mailto:hola@tacuara.com.ar?subject=BAJA>" },
-        });
-      } catch (err) {
-        console.error("[crm] Gmail no pudo enviar a", e.email, err);
-        error = err instanceof Error ? err.message : "Error de envío";
-      }
-      // El registro no debe tumbar el resultado: el mail ya salió (o falló) y eso es lo que importa mostrar.
-      try {
-        await db("envios", {
-          method: "POST",
-          body: { empresa_id: e.id, asunto: subject, ok: error === null, error },
+        await db("envios", { method: "POST", body: { empresa_id: e.id, asunto: data.subject, ok: true, error: null }, prefer: "return=minimal" });
+        await db(`empresas?id=eq.${e.id}`, {
+          method: "PATCH",
+          body: {
+            envios_count: e.envios_count + 1,
+            ultimo_envio_at: now,
+            primer_envio_at: e.primer_envio_at ?? now,
+            ...(e.estado === "nuevo" ? { estado: "contactado" } : {}),
+          },
           prefer: "return=minimal",
         });
-        if (error === null) {
-          const now = new Date().toISOString();
-          await db(`empresas?id=eq.${e.id}`, {
-            method: "PATCH",
-            body: {
-              envios_count: e.envios_count + 1,
-              ultimo_envio_at: now,
-              primer_envio_at: e.primer_envio_at ?? now,
-              ...(e.estado === "nuevo" ? { estado: "contactado" } : {}),
-            },
-            prefer: "return=minimal",
-          });
-        }
+        marked += 1;
       } catch (err) {
         console.error("[crm] no se pudo registrar el envío de", e.email, err);
       }
-      (error === null ? sent : failed).push(e.nombre);
     }
-    return { sent, failed, skipped };
+    return { marked };
   });
