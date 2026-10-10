@@ -134,24 +134,46 @@ function stripClip({ tl, tr, bl, br, step }: (typeof strips)[number]) {
 function Index() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [active, setActive] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [listInView, setListInView] = useState(false);
-  const listRef = useRef<HTMLDivElement>(null);
+  const [armed, setArmed] = useState(false);
+  const pinRef = useRef<HTMLDivElement>(null);
   const bandRef = useRef<HTMLDivElement>(null);
 
-  // Los servicios rotan solos mientras el bloque está a la vista y el mouse no está encima.
+  // Servicios: misma técnica que la sección que sigue (ScrollWords). El bloque queda clavado (sticky) y el scroll
+  // va abriendo un servicio tras otro. Con "reducir movimiento" no se activa y queda la lista normal.
   useEffect(() => {
-    const el = listRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([entry]) => setListInView(Boolean(entry?.isIntersecting)), { threshold: 0.35 });
-    io.observe(el);
-    return () => io.disconnect();
+    const pin = pinRef.current;
+    const pane = pin?.firstElementChild as HTMLElement | null;
+    if (!pin || !pane || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    setArmed(true);
+    const HEADER = 72;
+    let frame = 0;
+    const sizePin = () => {
+      pin.style.height = `${pane.offsetHeight + window.innerHeight * 0.55 * services.length}px`;
+    };
+    const update = () => {
+      frame = 0;
+      const scrollable = Math.max(1, pin.offsetHeight - pane.offsetHeight);
+      const progress = Math.min(1, Math.max(0, (HEADER - pin.getBoundingClientRect().top) / scrollable / 0.9));
+      setActive(Math.min(services.length - 1, Math.floor(progress * services.length)));
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    const onResize = () => {
+      sizePin();
+      onScroll();
+    };
+    sizePin();
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+      cancelAnimationFrame(frame);
+      pin.style.height = "";
+    };
   }, []);
-  useEffect(() => {
-    if (paused || !listInView || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const id = window.setInterval(() => setActive((i) => (i + 1) % services.length), 4200);
-    return () => clearInterval(id);
-  }, [paused, listInView]);
 
   // Scroll: --sy para las formas de fondo.
   useEffect(() => {
@@ -368,27 +390,18 @@ function Index() {
 
       {/* SERVICIOS: lista + detalle (caben juntos en pantalla) */}
       <section className="dots relative border-b border-dashed border-ink/55 bg-background">
-        <div
-          ref={listRef}
-          className="mx-auto grid max-w-[96rem] gap-10 px-4 py-14 sm:px-8 lg:min-h-[calc(100svh-4.5rem)] lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-16 lg:py-16"
-        >
-          <ul className="space-y-1" data-sr-group>
+        <div ref={pinRef}>
+          <div className="sticky top-[72px] flex min-h-[calc(100svh-72px)] items-center">
+        <div className="mx-auto grid w-full max-w-[96rem] gap-10 px-4 py-8 sm:px-8 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-16 lg:py-4">
+          <ul className={armed ? "hidden space-y-1 lg:block" : "space-y-1"}>
             {services.map(({ title }, index) => (
               <li key={title}>
                 <button
                   type="button"
                   className="svc-line display flex w-full cursor-pointer items-start gap-3 text-left text-[clamp(1.9rem,4.6vw,4.4rem)]"
                   aria-current={index === active}
-                  onMouseEnter={() => {
-                    setActive(index);
-                    setPaused(true);
-                  }}
-                  onMouseLeave={() => setPaused(false)}
-                  onFocus={() => {
-                    setActive(index);
-                    setPaused(true);
-                  }}
-                  onBlur={() => setPaused(false)}
+                  onMouseEnter={() => setActive(index)}
+                  onFocus={() => setActive(index)}
                   onClick={() => setActive(index)}
                 >
                   <span className="mono-label shrink-0 text-[0.7rem] tracking-normal">0{index + 1}</span>
@@ -403,7 +416,7 @@ function Index() {
               <span className="mono-label text-impact">{current.title}</span>
             </div>
             <div className="dots mx-5 mt-3 border border-dashed border-ink/40 bg-warm sm:mx-6">
-              <div className="aspect-[400/220]" key={active}>
+              <div className="aspect-[400/220] lg:aspect-auto lg:h-[min(30svh,19rem)]" key={active}>
                 <ServiceArt index={active} />
               </div>
             </div>
@@ -419,6 +432,8 @@ function Index() {
               </ul>
             </div>
           </article>
+        </div>
+          </div>
         </div>
       </section>
 
