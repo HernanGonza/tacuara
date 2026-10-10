@@ -131,7 +131,20 @@ function stripClip({ tl, tr, bl, br, step }: (typeof strips)[number]) {
   return `polygon(${top}, ${100 - br}% 100%, ${bl}% 100%)`;
 }
 
-function ServiceCard({ service, index, live = false, showTitle = true }: { service: (typeof services)[number]; index: number; live?: boolean; showTitle?: boolean }) {
+function ServiceCard({
+  service,
+  index,
+  live = false,
+  showTitle = true,
+  fit = false,
+}: {
+  service: (typeof services)[number];
+  index: number;
+  live?: boolean;
+  showTitle?: boolean;
+  /** Escritorio con la sección pegada: la ilustración se achica con la altura de la ventana para que todo entre. */
+  fit?: boolean;
+}) {
   return (
     <article
       className="flex flex-col border border-dashed border-ink/55 bg-white shadow-[10px_10px_0_0_var(--color-accent)]"
@@ -142,7 +155,7 @@ function ServiceCard({ service, index, live = false, showTitle = true }: { servi
         <span className="mono-label text-impact">{service.title}</span>
       </div>
       <div className="dots mx-5 mt-3 border border-dashed border-ink/40 bg-warm sm:mx-6">
-        <div className="aspect-[400/220]" key={index}>
+        <div className={fit ? "mx-auto aspect-[400/220] h-[min(30svh,19rem)] max-w-full" : "aspect-[400/220]"} key={index}>
           <ServiceArt index={index} />
         </div>
       </div>
@@ -503,14 +516,14 @@ function Index() {
         {/* Escritorio: lista a la izquierda y detalle a la derecha (con la sección pegada) */}
         <div ref={paneRef} className={`hidden lg:block ${pinned ? "sticky top-[72px] h-[calc(100svh-72px)]" : ""}`}>
           <div
-            className={`mx-auto grid w-full max-w-[96rem] gap-10 px-4 sm:px-8 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-16 lg:py-16 ${pinned ? "h-full" : "lg:min-h-[calc(100svh-4.5rem)]"}`}
+            className={`mx-auto grid w-full max-w-[96rem] gap-10 px-4 sm:px-8 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-16 ${pinned ? "h-full py-4" : "lg:min-h-[calc(100svh-4.5rem)] lg:py-16"}`}
           >
-            <ul className="space-y-1" data-sr-group>
+            <ul className="space-y-1">
               {services.map(({ title }, index) => (
                 <li key={title}>
                   <button
                     type="button"
-                    className="svc-line display flex w-full cursor-pointer items-start gap-3 text-left text-[clamp(1.9rem,4.6vw,4.4rem)]"
+                    className="svc-line display flex w-full cursor-pointer items-start gap-3 text-left text-[clamp(1.9rem,min(4.6vw,7.5svh),4.4rem)]"
                     aria-current={index === active}
                     onMouseEnter={() => setActive(index)}
                     onMouseLeave={() => {
@@ -528,7 +541,7 @@ function Index() {
                 </li>
               ))}
             </ul>
-            <ServiceCard service={current} index={active} live />
+            <ServiceCard service={current} index={active} live fit={pinned} />
           </div>
         </div>
       </section>
