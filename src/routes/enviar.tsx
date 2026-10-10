@@ -9,6 +9,7 @@ import {
   fill,
   renderEmail,
 } from "@/lib/email-template";
+import { Crm } from "@/components/crm";
 import { Inbox } from "@/components/inbox";
 import { checkMailerPassword, sendMail } from "@/lib/mailer";
 
@@ -59,7 +60,7 @@ function Mailer() {
   const [body, setBody] = useState(DEFAULT_BODY);
   const [nombre, setNombre] = useState("");
   const [rol, setRol] = useState("");
-  const [tab, setTab] = useState<"enviar" | "bandeja">("enviar");
+  const [tab, setTab] = useState<"enviar" | "bandeja" | "empresas">("enviar");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [dark, setDark] = useState(false);
   const [status, setStatus] = useState<{ kind: "idle" | "busy" | "ok" | "error"; msg?: string }>({ kind: "idle" });
@@ -168,20 +169,23 @@ function Mailer() {
       <div className="mx-auto flex w-full max-w-[96rem] flex-1 flex-col lg:min-h-0">
         <div className="mb-2 flex items-baseline justify-between gap-4 border-b border-dashed border-ink/55 pb-2">
           <div className="flex items-baseline gap-5">
-            {(["enviar", "bandeja"] as const).map((t) => (
+            {(["enviar", "bandeja", "empresas"] as const).map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => setTab(t)}
                 className={`display text-2xl ${tab === t ? "" : "text-ink/35 hover:text-ink/70"}`}
               >
-                {t === "enviar" ? "Enviar" : "Bandeja"}
+                {t === "enviar" ? "Enviar" : t === "bandeja" ? "Bandeja" : "Empresas"}
               </button>
             ))}
           </div>
           <p className="mono-label hidden sm:block">Sale como hola@tacuara.com.ar</p>
         </div>
         {tab === "bandeja" && <Inbox password={password} nombre={nombre} rol={rol} />}
+        <div className={`${tab === "empresas" ? "flex" : "hidden"} min-h-0 flex-1 flex-col`}>
+          <Crm password={password} subject={subject} body={body} nombre={nombre} rol={rol} />
+        </div>
         <div className={`${tab === "enviar" ? "grid" : "hidden"} flex-1 grid-cols-[minmax(0,1fr)] gap-5 lg:min-h-0 lg:grid-cols-[minmax(0,26rem)_1fr] xl:grid-cols-[minmax(0,30rem)_1fr]`}>
           <div className="flex min-w-0 flex-col gap-2.5 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
             <label className="block space-y-1">
