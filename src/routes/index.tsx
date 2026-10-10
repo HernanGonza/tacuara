@@ -523,7 +523,7 @@ function Index() {
                 <li key={title}>
                   <button
                     type="button"
-                    className="svc-line display flex w-full cursor-pointer items-start gap-3 text-left text-[clamp(1.9rem,min(4.6vw,7.5svh),4.4rem)]"
+                    className="svc-line display flex w-full cursor-pointer items-start gap-3 text-left text-[clamp(1.9rem,4.6vw,4.4rem)] [@media(max-height:640px)]:text-[clamp(1.9rem,min(4.6vw,6.5svh),4.4rem)]"
                     aria-current={index === active}
                     onMouseEnter={() => setActive(index)}
                     onMouseLeave={() => {
