@@ -20,6 +20,14 @@ const ESTADO_STYLE: Record<Estado, string> = {
   descartado: "bg-ink/10 text-ink/50",
 };
 
+const ROW_STYLE: Record<Estado, string> = {
+  nuevo: "hover:bg-warm/50",
+  contactado: "bg-warm/45 hover:bg-warm/70",
+  respondio: "bg-accent/25 hover:bg-accent/40",
+  visita: "bg-impact/15 hover:bg-impact/25",
+  descartado: "bg-ink/[0.06] text-ink/45 hover:bg-ink/10",
+};
+
 type GroupBy = "zona" | "rubro" | "none";
 
 const fmtDate = (iso: string | null) =>
@@ -422,7 +430,7 @@ export function Crm({
                   colSpan={cols + 1}
                 >
                   {g.rows.map((e) => (
-                    <tr key={e.id} className={`border-b border-dashed border-ink/25 align-top hover:bg-warm/50 ${e.estado === "descartado" ? "text-ink/45" : ""}`}>
+                    <tr key={e.id} className={`border-b border-dashed border-ink/25 align-top ${ROW_STYLE[e.estado]}`}>
                       <td className="px-2 py-1.5">
                         <input type="checkbox" aria-label={`Seleccionar ${e.nombre}`} checked={selected.has(e.id)} onChange={(ev) => toggle([e.id], ev.target.checked)} />
                       </td>
