@@ -52,10 +52,10 @@ function parseRecipients(raw: string) {
   return { list, invalid };
 }
 
-/** Reemplaza solo las variables de la empresa ({{nombre_negocio}}, {{rubro}}, {{ciudad}}), con su texto de respaldo incluido. */
-function fillCompany(text: string, e: { nombre: string; rubro: string; zona: string }) {
-  return text.replace(/\{\{\s*(nombre_negocio|rubro|ciudad)\s*(?:\|[^}]*)?\}\}/g, (_m, key: string) =>
-    key === "rubro" ? e.rubro.toLowerCase() : key === "ciudad" ? e.zona : e.nombre,
+/** Reemplaza solo las variables de la empresa ({{nombre_negocio}}, {{contacto}}, {{rubro}}, {{ciudad}}), con su texto de respaldo incluido. */
+function fillCompany(text: string, e: { nombre: string; contacto: string; rubro: string; zona: string }) {
+  return text.replace(/\{\{\s*(nombre_negocio|contacto|rubro|ciudad)\s*(?:\|[^}]*)?\}\}/g, (_m, key: string) =>
+    key === "rubro" ? e.rubro.toLowerCase() : key === "ciudad" ? e.zona : key === "contacto" ? e.contacto.trim() || e.nombre : e.nombre,
   );
 }
 
@@ -87,7 +87,7 @@ function Mailer() {
   }, [nombre, rol]);
 
   // Datos de las empresas traídas desde el CRM (por email): el campo de destinatarios muestra solo el email.
-  const [known, setKnown] = useState<Record<string, { nombre_negocio: string; rubro: string; ciudad: string }>>({});
+  const [known, setKnown] = useState<Record<string, { nombre_negocio: string; contacto: string; rubro: string; ciudad: string }>>({});
   const parsed = useMemo(() => parseRecipients(raw), [raw]);
   const invalid = parsed.invalid;
   const list = useMemo(
@@ -97,6 +97,7 @@ function Mailer() {
         return {
           email: r.email,
           nombre_negocio: r.nombre_negocio ?? k?.nombre_negocio,
+          contacto: k?.contacto,
           rubro: r.rubro ?? k?.rubro,
           ciudad: r.ciudad ?? k?.ciudad,
         };
@@ -109,6 +110,7 @@ function Mailer() {
     remitente_nombre: nombre,
     remitente_rol: rol,
     nombre_negocio: first?.nombre_negocio,
+    contacto: first?.contacto,
     rubro: first?.rubro,
     ciudad: first?.ciudad,
   };
@@ -120,7 +122,7 @@ function Mailer() {
         dark ? "@media all" : "@media not all",
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [body, nombre, rol, dark, first?.nombre_negocio, first?.rubro, first?.ciudad],
+    [body, nombre, rol, dark, first?.nombre_negocio, first?.contacto, first?.rubro, first?.ciudad],
   );
 
   async function unlock(e: React.FormEvent) {
@@ -230,7 +232,7 @@ function Mailer() {
             password={password}
             reloadKey={crmReload}
             onCompose={(rows) => {
-              setKnown(Object.fromEntries(rows.map((e) => [e.email.toLowerCase(), { nombre_negocio: e.nombre, rubro: e.rubro, ciudad: e.zona }])));
+              setKnown(Object.fromEntries(rows.map((e) => [e.email.toLowerCase(), { nombre_negocio: e.nombre, contacto: e.contacto, rubro: e.rubro, ciudad: e.zona }])));
               setRaw(rows.map((e) => e.email).join("\n"));
               // Con una sola empresa, el asunto y el mensaje quedan con su nombre ya puesto (editable). Con varias, siguen las variables.
               const t = tpl.current;
@@ -280,7 +282,7 @@ function Mailer() {
               <span className="mono-label">3 · Mensaje ({words} palabras)</span>
               <textarea className={`${field} min-h-[14rem] lg:min-h-[8rem] lg:flex-1`} value={body} onChange={(e) => setBody(e.target.value)} />
               <p className={hint}>
-                Línea en blanco = párrafo nuevo. «- » al inicio = viñeta. {"{{nombre_negocio}}"}, {"{{rubro}}"} y {"{{ciudad}}"} se completan solos.{" "}
+                Línea en blanco = párrafo nuevo. «- » al inicio = viñeta. {"{{nombre_negocio}}"}, {"{{contacto}}"} (la persona, o el negocio si no hay), {"{{rubro}}"} y {"{{ciudad}}"} se completan solos.{" "}
                 <button type="button" className="underline" onClick={() => setBody(DEFAULT_BODY)}>
                   Texto original
                 </button>

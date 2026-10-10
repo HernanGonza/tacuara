@@ -2,7 +2,7 @@
  * Plantilla del mail de presentación en frío. Función pura (sin imports) para usarla igual
  * en el servidor, en la vista previa del mandador y en scripts/build-email.ts.
  *
- * Variables: {{nombre_negocio}}, {{rubro}}, {{ciudad}} (+ {{remitente_nombre}}, {{remitente_rol}}).
+ * Variables: {{nombre_negocio}}, {{contacto}} (cae en el nombre del negocio), {{rubro}}, {{ciudad}} (+ {{remitente_nombre}}, {{remitente_rol}}).
  * Fallback propio con {{variable|texto}}; si no, se usa el de DEFAULTS.
  */
 
@@ -31,7 +31,7 @@ export const DEFAULT_SUBJECTS = [
 
 export const DEFAULT_PREHEADER = "Un solo equipo para diseño, software, datos y procesos. Sin vueltas.";
 
-export const DEFAULT_BODY = `Hola, {{nombre_negocio|equipo}}:
+export const DEFAULT_BODY = `Hola, {{contacto|equipo}}:
 
 Somos Tacuara, una consultora de Misiones. Ayudamos a negocios de {{rubro}} en {{ciudad}} a ordenar su parte digital con un solo equipo, sin coordinar cinco proveedores distintos.
 
@@ -46,7 +46,7 @@ Primero escuchamos tu proyecto, después diagnosticamos y entregamos de a poco, 
 Si te interesa, respondé este mail y coordinamos una charla corta, sin compromiso.`;
 
 export type EmailVars = Partial<
-  Record<"nombre_negocio" | "rubro" | "ciudad" | "remitente_nombre" | "remitente_rol", string | undefined>
+  Record<"nombre_negocio" | "contacto" | "rubro" | "ciudad" | "remitente_nombre" | "remitente_rol", string | undefined>
 >;
 
 const TOKEN = /\{\{\s*(\w+)\s*(?:\|([^}]*))?\}\}/g;
@@ -61,7 +61,9 @@ const esc = (s: string) =>
 export function fill(str: string, vars: EmailVars | undefined, html = false): string {
   if (!vars) return str;
   return str.replace(TOKEN, (_m, key: string, fb?: string) => {
-    let value = (vars as Record<string, string | undefined>)[key]?.trim();
+    const v = vars as Record<string, string | undefined>;
+    // {{contacto}}: la persona de contacto si hay; si no, el nombre del negocio.
+    let value = (v[key]?.trim() || (key === "contacto" ? v["nombre_negocio"]?.trim() : "")) || undefined;
     if (value && key === "rubro") value = value.toLowerCase();
     if (value) return html ? esc(value) : value;
     const fallback = fb?.trim() || (html ? esc(DEFAULTS[key] ?? "") : (DEFAULTS[key] ?? ""));

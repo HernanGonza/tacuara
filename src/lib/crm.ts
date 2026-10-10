@@ -22,6 +22,7 @@ export interface Empresa {
   tamano: "pyme" | "grande";
   fuente: string | null;
   estado: Estado;
+  contacto: string;
   notas: string;
   envios_count: number;
   primer_envio_at: string | null;
@@ -78,6 +79,7 @@ const empresaInput = z.object({
   web: text(300).optional(),
   tamano: z.enum(["pyme", "grande"]).optional(),
   fuente: text(200).optional(),
+  contacto: text(200).optional(),
   notas: text(2000).optional(),
 });
 

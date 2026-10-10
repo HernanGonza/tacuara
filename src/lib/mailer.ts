@@ -9,6 +9,7 @@ const MAX_RECIPIENTS = 50;
 const recipient = z.object({
   email: z.string().trim().email().max(200),
   nombre_negocio: z.string().trim().max(200).optional(),
+  contacto: z.string().trim().max(200).optional(),
   rubro: z.string().trim().max(100).optional(),
   ciudad: z.string().trim().max(100).optional(),
 });

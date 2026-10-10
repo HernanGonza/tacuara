@@ -40,13 +40,13 @@ function sortZonas(empresas: Empresa[]) {
 
 /** Una línea por empresa: email; nombre; rubro; zona (separados por ; o tab). */
 function parseImport(raw: string) {
-  const rows: { email: string; nombre: string; rubro?: string; zona?: string }[] = [];
+  const rows: { email: string; nombre: string; rubro?: string; zona?: string; contacto?: string }[] = [];
   const invalid: string[] = [];
   for (const line of raw.split(/\r?\n/)) {
     if (!line.trim()) continue;
-    const [email = "", nombre = "", rubro, zona] = line.split(/[;\t]/).map((f) => f.trim());
+    const [email = "", nombre = "", rubro, zona, contacto] = line.split(/[;\t]/).map((f) => f.trim());
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && nombre) {
-      rows.push({ email, nombre, ...(rubro ? { rubro } : {}), ...(zona ? { zona } : {}) });
+      rows.push({ email, nombre, ...(rubro ? { rubro } : {}), ...(zona ? { zona } : {}), ...(contacto ? { contacto } : {}) });
     } else invalid.push(line.trim());
   }
   return { rows, invalid };
@@ -79,7 +79,7 @@ export function Crm({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [form, setForm] = useState({ nombre: "", email: "", rubro: "", zona: "", web: "" });
+  const [form, setForm] = useState({ nombre: "", email: "", rubro: "", zona: "", web: "", contacto: "" });
   const [bulk, setBulk] = useState("");
   const [adding, setAdding] = useState(false);
 
@@ -117,7 +117,7 @@ export function Crm({
         (!estado || e.estado === estado) &&
         (!tamano || e.tamano === tamano) &&
         (!soloSinEnviar || e.envios_count === 0) &&
-        (!term || `${e.nombre} ${e.email} ${e.rubro} ${e.zona} ${e.notas}`.toLowerCase().includes(term)),
+        (!term || `${e.nombre} ${e.email} ${e.rubro} ${e.zona} ${e.contacto} ${e.notas}`.toLowerCase().includes(term)),
     );
   }, [empresas, q, zona, rubro, estado, tamano, soloSinEnviar]);
 
@@ -164,7 +164,7 @@ export function Crm({
     });
   }
 
-  async function patch(id: string, p: { estado?: Estado; notas?: string }) {
+  async function patch(id: string, p: { estado?: Estado; notas?: string; contacto?: string }) {
     const before = empresas;
     setEmpresas((prev) => prev.map((e) => (e.id === id ? ({ ...e, ...p } as Empresa) : e)));
     try {
@@ -186,14 +186,14 @@ export function Crm({
     }
   }
 
-  async function add(rows: { email: string; nombre: string; rubro?: string; zona?: string; web?: string }[]) {
+  async function add(rows: { email: string; nombre: string; rubro?: string; zona?: string; web?: string; contacto?: string }[]) {
     setAdding(true);
     setError("");
     setNotice("");
     try {
       const res = await crmCreate({ data: { password, empresas: rows } });
       setNotice(`Se agregaron ${res.created} empresa(s).${res.skipped ? ` ${res.skipped} ya existían (mismo email) y se ignoraron.` : ""}`);
-      setForm({ nombre: "", email: "", rubro: "", zona: "", web: "" });
+      setForm({ nombre: "", email: "", rubro: "", zona: "", web: "", contacto: "" });
       setBulk("");
       await load();
     } catch (e) {
@@ -216,7 +216,7 @@ export function Crm({
   const importParsed = useMemo(() => parseImport(bulk), [bulk]);
   const showZona = groupBy !== "zona";
   const showRubro = groupBy !== "rubro";
-  const cols = 6 + (showZona ? 1 : 0) + (showRubro ? 1 : 0);
+  const cols = 7 + (showZona ? 1 : 0) + (showRubro ? 1 : 0);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
@@ -306,6 +306,7 @@ export function Crm({
                   ...(form.rubro ? { rubro: form.rubro } : {}),
                   ...(form.zona ? { zona: form.zona } : {}),
                   ...(form.web ? { web: form.web } : {}),
+                  ...(form.contacto ? { contacto: form.contacto } : {}),
                 },
               ]);
             }}
@@ -315,7 +316,8 @@ export function Crm({
             <input className={field} type="email" placeholder="Email *" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             <input className={field} placeholder="Rubro" list="crm-rubros" value={form.rubro} onChange={(e) => setForm({ ...form, rubro: e.target.value })} />
             <input className={field} placeholder="Zona" list="crm-zonas" value={form.zona} onChange={(e) => setForm({ ...form, zona: e.target.value })} />
-            <input className={`${field} col-span-2`} placeholder="Web (opcional)" value={form.web} onChange={(e) => setForm({ ...form, web: e.target.value })} />
+            <input className={field} placeholder="Persona de contacto" value={form.contacto} onChange={(e) => setForm({ ...form, contacto: e.target.value })} />
+            <input className={field} placeholder="Web (opcional)" value={form.web} onChange={(e) => setForm({ ...form, web: e.target.value })} />
             <button className="btn-solid col-span-2 !min-h-9" disabled={adding}>
               Agregar
             </button>
@@ -336,11 +338,11 @@ export function Crm({
               className={`${field} font-mono text-xs`}
               rows={4}
               spellCheck={false}
-              placeholder={"info@ferreteria.com; Ferretería El Tornillo; Ferretería; Posadas"}
+              placeholder={"info@ferreteria.com; Ferretería El Tornillo; Ferretería; Posadas; Laura Gómez"}
               value={bulk}
               onChange={(e) => setBulk(e.target.value)}
             />
-            <p className="text-xs text-ink/60">Una por línea: email; nombre; rubro; zona (separado por ; o tab, sirve pegar desde una planilla). Los emails repetidos se ignoran.</p>
+            <p className="text-xs text-ink/60">Una por línea: email; nombre; rubro; zona; contacto (separado por ; o tab, sirve pegar desde una planilla). Los emails repetidos se ignoran.</p>
             {importParsed.invalid.length > 0 && <p className="text-xs text-destructive">Línea inválida: {importParsed.invalid.join(" | ")}</p>}
             <button
               type="button"
@@ -382,6 +384,7 @@ export function Crm({
               <th className="px-2 py-1.5 font-normal">Empresa</th>
               {showRubro && <th className="px-2 py-1.5 font-normal">Rubro</th>}
               {showZona && <th className="px-2 py-1.5 font-normal">Zona</th>}
+              <th className="px-2 py-1.5 font-normal">Contacto</th>
               <th className="px-2 py-1.5 font-normal">Email</th>
               <th className="px-2 py-1.5 font-normal">Estado</th>
               <th className="px-2 py-1.5 font-normal">Enviado</th>
@@ -440,6 +443,17 @@ export function Crm({
                       </td>
                       {showRubro && <td className="px-2 py-1.5 text-xs">{e.rubro}</td>}
                       {showZona && <td className="px-2 py-1.5 text-xs">{e.zona}</td>}
+                      <td className="min-w-[9rem] px-2 py-1.5">
+                        <input
+                          key={`${e.id}-c-${e.contacto}`}
+                          className={`${small} w-full`}
+                          defaultValue={e.contacto}
+                          maxLength={200}
+                          aria-label={`Persona de contacto de ${e.nombre}`}
+                          placeholder="Persona…"
+                          onBlur={(ev) => ev.target.value.trim() !== e.contacto && void patch(e.id, { contacto: ev.target.value })}
+                        />
+                      </td>
                       <td className="max-w-[14rem] break-all px-2 py-1.5 font-mono text-xs">{e.email}</td>
                       <td className="px-2 py-1.5">
                         <select
