@@ -12,20 +12,20 @@ const ESTADO_LABEL: Record<Estado, string> = {
   visita: "Visita",
   descartado: "Descartado",
 };
+// Panel interno: colores planos y bien distintos entre sí. Fila = tono claro, selector y leyenda = tono fuerte.
 const ESTADO_STYLE: Record<Estado, string> = {
-  nuevo: "bg-white text-ink",
-  contactado: "bg-warm text-ink",
-  respondio: "bg-accent/40 text-ink",
-  visita: "bg-impact text-impact-foreground",
-  descartado: "bg-ink/10 text-ink/50",
+  nuevo: "bg-white text-neutral-900",
+  contactado: "bg-yellow-300 text-neutral-900",
+  respondio: "bg-sky-400 text-neutral-900",
+  visita: "bg-green-500 text-neutral-900",
+  descartado: "bg-neutral-400 text-neutral-900",
 };
-
 const ROW_STYLE: Record<Estado, string> = {
-  nuevo: "hover:bg-warm/50",
-  contactado: "bg-warm/45 hover:bg-warm/70",
-  respondio: "bg-accent/25 hover:bg-accent/40",
-  visita: "bg-impact/15 hover:bg-impact/25",
-  descartado: "bg-ink/[0.06] text-ink/45 hover:bg-ink/10",
+  nuevo: "bg-white hover:bg-neutral-100",
+  contactado: "bg-yellow-100 hover:bg-yellow-200",
+  respondio: "bg-sky-100 hover:bg-sky-200",
+  visita: "bg-green-200 hover:bg-green-300",
+  descartado: "bg-neutral-200 text-neutral-500 hover:bg-neutral-300",
 };
 
 type GroupBy = "zona" | "rubro" | "none";
@@ -236,6 +236,7 @@ export function Crm({
             onClick={() => setEstado(estado === s ? "" : s)}
             className={`mono-label ${estado === s ? "text-impact underline" : "text-ink/70 hover:text-ink"}`}
           >
+            <span className={`mr-1.5 inline-block size-3 translate-y-0.5 border border-ink/60 ${ESTADO_STYLE[s]}`} aria-hidden="true" />
             {ESTADO_LABEL[s]} {stats[s]}
           </button>
         ))}
@@ -465,7 +466,7 @@ export function Crm({
                       <td className="max-w-[14rem] break-all px-2 py-1.5 font-mono text-xs">{e.email}</td>
                       <td className="px-2 py-1.5">
                         <select
-                          className={`${small} ${ESTADO_STYLE[e.estado]}`}
+                          className={`border border-dashed border-ink/55 px-2 py-1 text-xs font-semibold outline-none focus:border-impact ${ESTADO_STYLE[e.estado]}`}
                           value={e.estado}
                           aria-label={`Estado de ${e.nombre}`}
                           onChange={(ev) => void patch(e.id, { estado: ev.target.value as Estado })}
